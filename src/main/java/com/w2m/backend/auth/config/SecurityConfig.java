@@ -1,8 +1,8 @@
 package com.w2m.backend.auth.config;
 
-
-
+import com.w2m.backend.auth.handler.OAuth2SuccessHandler;
 import com.w2m.backend.auth.jwt.JwtTokenFilter;
+import com.w2m.backend.auth.service.CustomOAuth2UserService;
 import com.w2m.backend.auth.service.UserService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;

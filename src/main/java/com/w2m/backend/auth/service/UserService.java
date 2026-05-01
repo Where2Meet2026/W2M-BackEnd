@@ -2,6 +2,7 @@ package com.w2m.backend.auth.service;
 
 import com.w2m.backend.auth.dto.LoginRequestDto;
 import com.w2m.backend.auth.dto.RegisterRequestDto;
+import com.w2m.backend.auth.dto.SocialRegisterRequestDto;
 import com.w2m.backend.auth.entity.User;
 import com.w2m.backend.auth.repository.UserRepository;
 import lombok.RequiredArgsConstructor;

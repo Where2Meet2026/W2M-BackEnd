@@ -1,3 +1,6 @@
+package com.w2m.backend.auth.handler;
+
+import com.w2m.backend.auth.entity.User;
 import com.w2m.backend.auth.jwt.CustomUserDetails;
 import com.w2m.backend.auth.jwt.JwtTokenUtil;
 import jakarta.servlet.ServletException;

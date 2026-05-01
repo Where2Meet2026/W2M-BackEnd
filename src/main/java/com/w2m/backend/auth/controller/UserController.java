@@ -3,6 +3,7 @@ package com.w2m.backend.auth.controller;
 import com.w2m.backend.auth.dto.LoginRequestDto;
 import com.w2m.backend.auth.dto.LoginResponseDto;
 import com.w2m.backend.auth.dto.RegisterRequestDto;
+import com.w2m.backend.auth.dto.SocialRegisterRequestDto;
 import com.w2m.backend.auth.entity.User;
 import com.w2m.backend.auth.jwt.JwtTokenUtil;
 import com.w2m.backend.auth.service.LogoutService;
@@ -16,7 +17,7 @@ import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequiredArgsConstructor
-@RequestMapping("/api/v1")
+@RequestMapping("/api/auth")
 public class UserController {
 
     private final UserService userService;
@@ -27,7 +28,7 @@ public class UserController {
     @Value("${SecretKey}")
     private String secretKey;
 
-    @PostMapping("/register")
+    @PostMapping("/signup")
     public ResponseEntity<String> register(@RequestBody RegisterRequestDto registerRequestDto) {
         // 0. 이메일 인증 여부 확인
         if (!verificationService.isVerified(registerRequestDto.getEmail())) {
@@ -53,7 +54,7 @@ public class UserController {
                 .body("회원가입 성공");
     }
 
-    @PostMapping("/social-register")
+    @PostMapping("/social-signup")
     public ResponseEntity<String> socialRegister(@RequestBody SocialRegisterRequestDto socialRegisterRequestDto) {
         // 1. 이메일 중복 체크
         if(userService.checkLoginIdDuplicate(socialRegisterRequestDto.getEmail())) {

@@ -1,3 +1,5 @@
+package com.w2m.backend.auth.service;
+
 import com.w2m.backend.auth.entity.Provider;
 import com.w2m.backend.auth.entity.User;
 import com.w2m.backend.auth.jwt.CustomUserDetails;

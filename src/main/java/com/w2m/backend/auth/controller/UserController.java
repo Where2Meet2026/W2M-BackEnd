@@ -7,6 +7,7 @@ import com.w2m.backend.auth.entity.User;
 import com.w2m.backend.auth.jwt.JwtTokenUtil;
 import com.w2m.backend.auth.service.LogoutService;
 import com.w2m.backend.auth.service.UserService;
+import com.w2m.backend.auth.service.VerificationService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
@@ -20,6 +21,7 @@ public class UserController {
 
     private final UserService userService;
     private final LogoutService logoutService;
+    private final VerificationService verificationService;
 
 
     @Value("${SecretKey}")
@@ -27,8 +29,13 @@ public class UserController {
 
     @PostMapping("/register")
     public ResponseEntity<String> register(@RequestBody RegisterRequestDto registerRequestDto) {
-        // loginId 중복 체크
-        // 1. 아이디 중복 시 -> 409 Conflict (실패)
+        // 0. 이메일 인증 여부 확인
+        if (!verificationService.isVerified(registerRequestDto.getEmail())) {
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST)
+                    .body("이메일 인증이 완료되지 않았습니다.");
+        }
+
+        // 1. loginId 중복 체크
         if(userService.checkLoginIdDuplicate(registerRequestDto.getEmail())) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
                     .body("로그인 아이디가 중복됩니다.");
@@ -44,6 +51,20 @@ public class UserController {
         userService.join(registerRequestDto);
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body("회원가입 성공");
+    }
+
+    @PostMapping("/social-register")
+    public ResponseEntity<String> socialRegister(@RequestBody SocialRegisterRequestDto socialRegisterRequestDto) {
+        // 1. 이메일 중복 체크
+        if(userService.checkLoginIdDuplicate(socialRegisterRequestDto.getEmail())) {
+            return ResponseEntity.status(HttpStatus.CONFLICT)
+                    .body("이미 가입된 이메일입니다.");
+        }
+
+        // 2. 가입 처리 (이때 DB에 저장)
+        userService.socialJoin(socialRegisterRequestDto);
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body("소셜 회원가입 성공");
     }
 
 

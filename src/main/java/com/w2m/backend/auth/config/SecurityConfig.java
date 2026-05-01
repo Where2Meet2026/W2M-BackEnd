@@ -22,6 +22,8 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 public class SecurityConfig {
 
     private final UserService userService;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2SuccessHandler oAuth2SuccessHandler;
     @Value("${SecretKey}")
     private String secretKey;
     private final RedisTemplate<String, Object> redisTemplate;
@@ -43,7 +45,8 @@ public class SecurityConfig {
                                 "/api/v1/register",
                                 "/api/v1/send-code",
                                 "/api/v1/verify-code",
-                                "/api/v1/organizer/status"
+                                "/api/v1/organizer/status",
+                                "/login/oauth2/**"
                         ).permitAll()
 
                         // 그 외 모든 요청(.anyRequest())은 로그인(authenticated)이 되어야만 가능
@@ -51,7 +54,13 @@ public class SecurityConfig {
                         .anyRequest().authenticated()
                 )
 
-                // 3. JWT 필터 배치
+                // 3. OAuth2 로그인 설정
+                .oauth2Login(oauth2 -> oauth2
+                        .userInfoEndpoint(userInfo -> userInfo.userService(customOAuth2UserService))
+                        .successHandler(oAuth2SuccessHandler)
+                )
+
+                // 4. JWT 필터 배치
                 .addFilterBefore(new JwtTokenFilter(userService, secretKey, redisTemplate),
                         UsernamePasswordAuthenticationFilter.class);
 

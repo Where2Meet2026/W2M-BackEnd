@@ -30,9 +30,14 @@ public class UserService {
         userRepository.save(registerRequestDto.toEntity(bCryptPasswordEncoder.encode(registerRequestDto.getPassword())));
     }
 
+    //소셜 회원가입
+    public void socialJoin(SocialRegisterRequestDto socialRegisterRequestDto) {
+        userRepository.save(socialRegisterRequestDto.toEntity());
+    }
+
     //로그인
     public User userLogin(LoginRequestDto req) {
-        Optional<User> optionalUser = userRepository.findByEmail(req.getIdentification());
+        Optional<User> optionalUser = userRepository.findByEmail(req.getEmail());
 
         // loginId와 일치하는 User가 없으면 null return
         if(optionalUser.isEmpty()) {

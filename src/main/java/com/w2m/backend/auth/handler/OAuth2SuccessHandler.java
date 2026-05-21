@@ -32,7 +32,8 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
         // [신규 유저인 경우] - 아직 DB에 저장되지 않음 (id가 null)
         if (user.getId() == null) {
-            String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/social-signup")
+            String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/kakao-callback")
+                    .queryParam("isNew", "true")
                     .queryParam("email", user.getEmail())
                     .queryParam("name", user.getName())
                     .queryParam("providerId", user.getProviderId())
@@ -46,7 +47,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         long expireTimeMs = 1000 * 60 * 60;
         String jwtToken = JwtTokenUtil.createToken(user.getId(), secretKey, expireTimeMs);
 
-        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:3000/oauth2/redirect")
+        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/kakao-callback")
                 .queryParam("token", jwtToken)
                 .build().toUriString();
 

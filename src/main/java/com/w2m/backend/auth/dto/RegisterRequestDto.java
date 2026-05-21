@@ -14,7 +14,7 @@ public class RegisterRequestDto {
 
     private String email;         // 로그인 아이디 겸 이메일
     private String password;
-    private String passwordCheck; // 비밀번호 확인용 (DB 저장 X)
+    //private String passwordCheck; // 비밀번호 확인용 (DB 저장 X)
     private String name;
     private String phoneNumber;
 

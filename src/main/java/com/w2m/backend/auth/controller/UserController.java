@@ -43,10 +43,11 @@ public class UserController {
         }
 
         // 2. 비밀번호 불일치 시 -> 400 Bad Request (실패)
+        /*
         if(!registerRequestDto.getPassword().equals(registerRequestDto.getPasswordCheck())) {
             return ResponseEntity.status(HttpStatus.BAD_REQUEST)
                     .body("비밀번호가 일치하지 않습니다.");
-        }
+        }*/
 
         // 3. 진짜 성공 시 -> 201 Created (성공)
         userService.join(registerRequestDto);

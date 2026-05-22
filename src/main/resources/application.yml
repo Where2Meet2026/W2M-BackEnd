@@ -15,10 +15,6 @@ spring:
     properties:
       hibernate:
         format_sql: true
-        dialect: org.hibernate.dialect.MariaDBDialect
-
-  datasource:
-    driver-class-name: org.mariadb.jdbc.Driver
 
   mail:
     host: smtp.gmail.com

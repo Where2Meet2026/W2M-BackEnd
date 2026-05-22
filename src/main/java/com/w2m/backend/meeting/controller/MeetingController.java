@@ -1,33 +1,52 @@
 package com.w2m.backend.meeting.controller;
 
-import com.w2m.backend.meeting.dto.JoinRequestDto;
-import com.w2m.backend.meeting.dto.JoinResponseDto;
-import com.w2m.backend.meeting.dto.RoomRequestDto;
-import com.w2m.backend.meeting.dto.RoomResponseDto;
-import com.w2m.backend.meeting.service.RoomService;
+import com.w2m.backend.meeting.dto.request.CreateMeetingRequest;
+import com.w2m.backend.meeting.dto.request.UpdateMeetingStatusRequest;
+import com.w2m.backend.meeting.dto.response.MeetingResponse;
+import com.w2m.backend.meeting.service.MeetingService;
 import lombok.RequiredArgsConstructor;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.List;
+
 @RestController
-@RequestMapping("/api/rooms")
 @RequiredArgsConstructor
+@RequestMapping("/api/meetings")
+
 public class MeetingController {
-    private final RoomService roomService;
+
+    private final MeetingService meetingService;
 
     @PostMapping
-    public ResponseEntity<RoomResponseDto> create(@RequestBody RoomRequestDto request) {
-        RoomResponseDto response = roomService.createRoom(request.getTitle());
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+    public MeetingResponse createMeeting(@RequestBody CreateMeetingRequest request) {
+        return meetingService.createMeeting(request);
+    }
+    @GetMapping("/{meetingId}")
+    public MeetingResponse getMeeting(@PathVariable Long meetingId) {
+
+        return meetingService.getMeeting(meetingId);
+    }
+    @GetMapping("/my")
+    public List<MeetingResponse> getMyMeetings() {
+
+        Long hostUerId  = 1L; //임시 코딩
+
+        return meetingService.getMyMeetings(hostUerId);
+    }
+    @PatchMapping("/{meetingId}/status")
+    public MeetingResponse updateMeetingStatus(
+            @PathVariable Long meetingId,
+            @RequestBody UpdateMeetingStatusRequest request) {
+
+        return meetingService.updateMeetingStatus(meetingId, request);
+    }
+    @DeleteMapping("/{meetingId}")
+    public void deleteMeeting(@PathVariable Long meetingId) {
+        meetingService.deleteMeeting(meetingId);
+    }
+    @GetMapping("/invite/{inviteCode}")
+    public MeetingResponse getMeetingByInviteCode(@PathVariable String inviteCode) {
+        return meetingService.getMeetingByInviteCode(inviteCode);
     }
 
-    @PostMapping("/{roomCode}/join")
-    public ResponseEntity<JoinResponseDto> joinRoom(
-            @PathVariable String roomCode,
-            @RequestBody JoinRequestDto requestDto) {
-
-        JoinResponseDto response = roomService.joinRoom(roomCode, requestDto);
-        return ResponseEntity.ok(response);
-    }
 }

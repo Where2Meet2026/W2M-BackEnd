@@ -64,6 +64,4 @@ public class Meeting {
         VOTING, // 투표 중
         CONFIRMED // 최종 확정
     }
-
-
 }

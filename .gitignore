@@ -26,7 +26,6 @@ src/main/resources/application-local.yml
 out/
 !**/src/main/**/out/
 !**/src/test/**/out/
-application.yml
 
 ### NetBeans ###
 /nbproject/private/
@@ -37,5 +36,7 @@ application.yml
 
 ### VS Code ###
 .vscode/
+src/main/resources/application-local.yml
+
 
 

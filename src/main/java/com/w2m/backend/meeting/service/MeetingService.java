@@ -17,14 +17,14 @@ import java.util.UUID;
 public class MeetingService {
     private final MeetingRepository meetingRepository;
 
-    public MeetingResponse createMeeting(CreateMeetingRequest request){
+    public MeetingResponse createMeeting(CreateMeetingRequest request, Long hostUserId){
 
         String inviteCode = UUID.randomUUID()
                 .toString()
                 .substring(0, 6);
 
         Meeting meeting = new Meeting(
-                1L,
+                hostUserId != null ? hostUserId : 1L, // 기본값 1L 유지하되 전달받은 ID 우선 사용
                 request.getTitle(),
                 request.getDescription(),
                 inviteCode

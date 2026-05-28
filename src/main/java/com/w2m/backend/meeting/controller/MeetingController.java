@@ -7,6 +7,8 @@ import com.w2m.backend.meeting.service.MeetingService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.security.core.Authentication;
+import com.w2m.backend.auth.jwt.CustomUserDetails;
 import java.util.List;
 
 @RestController
@@ -18,8 +20,12 @@ public class MeetingController {
     private final MeetingService meetingService;
 
     @PostMapping
-    public MeetingResponse createMeeting(@RequestBody CreateMeetingRequest request) {
-        return meetingService.createMeeting(request);
+    public MeetingResponse createMeeting(@RequestBody CreateMeetingRequest request, Authentication authentication) {
+        Long userId = null;
+        if (authentication != null && authentication.getPrincipal() instanceof CustomUserDetails) {
+            userId = ((CustomUserDetails) authentication.getPrincipal()).getId();
+        }
+        return meetingService.createMeeting(request, userId);
     }
     @GetMapping("/{meetingId}")
     public MeetingResponse getMeeting(@PathVariable Long meetingId) {
@@ -27,11 +33,14 @@ public class MeetingController {
         return meetingService.getMeeting(meetingId);
     }
     @GetMapping("/my")
-    public List<MeetingResponse> getMyMeetings() {
+    public List<MeetingResponse> getMyMeetings(Authentication authentication) {
+        if (authentication == null || !(authentication.getPrincipal() instanceof CustomUserDetails)) {
+            throw new RuntimeException("인증 정보가 없습니다.");
+        }
+        
+        Long userId = ((CustomUserDetails) authentication.getPrincipal()).getId();
 
-        Long hostUerId  = 1L; //임시 코딩
-
-        return meetingService.getMyMeetings(hostUerId);
+        return meetingService.getMyMeetings(userId);
     }
     @PatchMapping("/{meetingId}/status")
     public MeetingResponse updateMeetingStatus(

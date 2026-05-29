@@ -1,10 +1,12 @@
 package com.w2m.backend.meeting.controller;
 
+import com.w2m.backend.auth.jwt.CustomUserDetails;
 import com.w2m.backend.meeting.dto.request.CreateMeetingRequest;
 import com.w2m.backend.meeting.dto.request.UpdateMeetingStatusRequest;
 import com.w2m.backend.meeting.dto.response.MeetingResponse;
 import com.w2m.backend.meeting.service.MeetingService;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -18,8 +20,12 @@ public class MeetingController {
     private final MeetingService meetingService;
 
     @PostMapping
-    public MeetingResponse createMeeting(@RequestBody CreateMeetingRequest request) {
-        return meetingService.createMeeting(request);
+    public MeetingResponse createMeeting(
+            @RequestBody CreateMeetingRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUser().getId();
+        return meetingService.createMeeting(request,userId);
     }
     @GetMapping("/{meetingId}")
     public MeetingResponse getMeeting(@PathVariable Long meetingId) {
@@ -27,11 +33,12 @@ public class MeetingController {
         return meetingService.getMeeting(meetingId);
     }
     @GetMapping("/my")
-    public List<MeetingResponse> getMyMeetings() {
+    public List<MeetingResponse> getMyMeetings(
+            @AuthenticationPrincipal CustomUserDetails userDetails
+            ) {
+        Long userId  = userDetails.getUser().getId();
 
-        Long hostUerId  = 1L; //임시 코딩
-
-        return meetingService.getMyMeetings(hostUerId);
+        return meetingService.getMyMeetings(userId);
     }
     @PatchMapping("/{meetingId}/status")
     public MeetingResponse updateMeetingStatus(
@@ -41,8 +48,12 @@ public class MeetingController {
         return meetingService.updateMeetingStatus(meetingId, request);
     }
     @DeleteMapping("/{meetingId}")
-    public void deleteMeeting(@PathVariable Long meetingId) {
-        meetingService.deleteMeeting(meetingId);
+    public void deleteMeeting(
+            @PathVariable Long meetingId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUser().getId();
+        meetingService.deleteMeeting(meetingId, userId);
     }
     @GetMapping("/invite/{inviteCode}")
     public MeetingResponse getMeetingByInviteCode(@PathVariable String inviteCode) {

@@ -1,41 +1,48 @@
 package com.w2m.backend.participant.entity;
 
-import com.w2m.backend.auth.entity.User;
-import com.w2m.backend.meeting.entity.Meeting;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
-import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDateTime;
+
 @Entity
-@Table(name = "participants")
 @Getter
 @NoArgsConstructor(access = AccessLevel.PROTECTED)
+@Table(name= "participants")
 public class Participant {
-
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "meeting_id", nullable = false)
-    private Meeting meeting;
-
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id")
-    private User user; // 로그인 사용자인 경우
-
-    @Column(nullable = false)
-    private String nickname;
-
-    private String password; // 비회원 참여자가 자신의 입력을 수정하기 위한 비밀번호
-
-    @Builder
-    public Participant(Meeting meeting, User user, String nickname, String password) {
-        this.meeting = meeting;
-        this.user = user;
-        this.nickname = nickname;
-        this.password = password;
+    // 어떤 모임에 참여했는지
+    @Column (name = "meeting_id" ,nullable = false)
+    private Long meetingId;
+    // 어떤 유저가 참여했는지
+    @Column(name= "user_id", nullable = false)
+    private Long userId;
+    // 방장인지 게스트 인지
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false, length = 20)
+    private ParticipantRole role;
+    // 참여 시간
+    @Column(name = "joined_at", nullable = false, updatable = false)
+    private LocalDateTime joinedAt;
+    // 참여자 생성용 생성자
+    public Participant(Long meetingId, Long userId, ParticipantRole role) {
+        this.meetingId = meetingId;
+        this.userId = userId;
+        this.role = role;
     }
+    // DB 저장 직전에 자동 실행
+    @PrePersist
+    public void onCreate() {
+        this.joinedAt = LocalDateTime.now();
+    }
+
+    public enum ParticipantRole {
+        HOST,
+        PARTICIPANT
+    }
+
 }

@@ -49,14 +49,9 @@ public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws
                             "/login/oauth2/**",
                             "/oauth2/**",
                             "/api/rooms/**",
-                            "/api/meetings/invite/**",
+                            "/swagger-ui/**",
+                            "/v3/api-docs/**"
 
-                            // === 스웨거(Swagger) 접근 허용 경로 추가 ===
-                            "/v3/api-docs/**",         // OpenAPI 데이터가 나오는 경로
-                            "/swagger-ui/**",          // 스웨거 UI 화면 관련 파일들
-                            "/swagger-ui.html",        // 옛날 버전이나 리다이렉트용 UI 메인
-                            "/swagger-resources/**",   // 스웨거 리소스 설정들
-                            "/webjars/**"              // UI에 필요한 웹 라이브러리들
                     ).permitAll()
 
                     // 그 외 모든 요청은 로그인(authenticated)이 되어야 함

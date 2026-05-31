@@ -14,6 +14,10 @@ public class MeetingResponse {
     private String inviteCode;
     private String status;
 
+    private String role;
+    private boolean canDelete;
+    private boolean canLeave;
+
     public static MeetingResponse from(Meeting meeting) {
         return MeetingResponse.builder()
                 .meetingId(meeting.getId())
@@ -21,6 +25,18 @@ public class MeetingResponse {
                 .description(meeting.getDescription())
                 .inviteCode(meeting.getInviteCode())
                 .status(meeting.getStatus().name())
+                .build();
+    }
+    public static MeetingResponse from(Meeting meeting, String role) {
+        return MeetingResponse.builder()
+                .meetingId(meeting.getId())
+                .title(meeting.getTitle())
+                .description(meeting.getDescription())
+                .inviteCode(meeting.getInviteCode())
+                .status(meeting.getStatus().name())
+                .role(role)
+                .canDelete("HOST".equals(role))
+                .canLeave("PARTICIPANT".equals(role))
                 .build();
     }
 }

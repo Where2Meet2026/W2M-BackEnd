@@ -9,4 +9,5 @@ import java.util.Optional;
 public interface MeetingRepository extends JpaRepository<Meeting,Long> {
     Optional<Meeting> findByInviteCode(String inviteCode);
     List<Meeting> findByHostUserId(Long hostUserId); //내가 만든 방 조회
+    List<Meeting> findByIdIn(List<Long> meetingIds);
 }

@@ -49,6 +49,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws
                             "/login/oauth2/**",
                             "/oauth2/**",
                             "/api/rooms/**",
+                            "/api/meetings/invite/**",
 
                             // === 스웨거(Swagger) 접근 허용 경로 추가 ===
                             "/v3/api-docs/**",         // OpenAPI 데이터가 나오는 경로

@@ -1,5 +1,7 @@
 package com.w2m.backend.participant.service;
 
+import com.w2m.backend.auth.entity.User;
+import com.w2m.backend.auth.repository.UserRepository;
 import com.w2m.backend.meeting.entity.Meeting;
 import com.w2m.backend.meeting.repository.MeetingRepository;
 import com.w2m.backend.participant.dto.request.CreateParticipantRequest;
@@ -19,17 +21,22 @@ public class ParticipantService {
 
     private final ParticipantRepository participantRepository;
     private final MeetingRepository meetingRepository;
+    private final UserRepository userRepository;
 
     @Transactional
-    public ParticipantResponse joinMeeting(CreateParticipantRequest request) {
+    public ParticipantResponse joinMeeting(CreateParticipantRequest request, Long userId) {
 
         // 초대코드로 모임 조회
         Meeting meeting = meetingRepository.findByInviteCode(request.getInviteCode())
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 초대코드입니다."));
 
+        // 유저 조회
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
         // 이미 참여한 유저인지 확인
         boolean alreadyJoined = participantRepository
-                .existsByMeetingIdAndUserId(meeting.getId(), request.getUserId());
+                .existsByMeetingIdAndUserId(meeting.getId(), user.getId());
 
         if (alreadyJoined) {
             throw new IllegalArgumentException("이미 참여한 모임입니다.");
@@ -37,8 +44,8 @@ public class ParticipantService {
 
         // Participant Entity 생성
         Participant participant = new Participant(
-                meeting.getId(),
-                request.getUserId(),
+                meeting,
+                user,
                 Participant.ParticipantRole.PARTICIPANT
         );
 
@@ -56,6 +63,13 @@ public class ParticipantService {
                 .stream()
                 .map(ParticipantResponse::from)
                 .toList();
+    }
+
+    @Transactional(readOnly = true)
+    public ParticipantResponse getMyParticipant(Long meetingId, Long userId) {
+        Participant participant = participantRepository.findByMeetingIdAndUserId(meetingId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("참여 정보가 존재하지 않습니다."));
+        return ParticipantResponse.from(participant);
     }
     @Transactional
     public void leaveMeeting(Long meetingId, Long userId) {

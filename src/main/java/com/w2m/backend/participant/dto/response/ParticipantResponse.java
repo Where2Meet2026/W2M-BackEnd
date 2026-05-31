@@ -12,14 +12,16 @@ public class ParticipantResponse {
     private Long participantId;
     private Long meetingId;
     private Long userId;
+    private String userName;
     private String role;
     private LocalDateTime joinedAt;
 
     public static ParticipantResponse from(Participant participant) {
         return ParticipantResponse.builder()
                 .participantId(participant.getId())
-                .meetingId(participant.getMeetingId())
-                .userId(participant.getUserId())
+                .meetingId(participant.getMeeting().getId())
+                .userId(participant.getUser().getId())
+                .userName(participant.getUser().getName())
                 .role(participant.getRole().name())
                 .joinedAt(participant.getJoinedAt())
                 .build();

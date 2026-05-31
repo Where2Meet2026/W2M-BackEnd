@@ -20,8 +20,10 @@ public class ParticipantController {
     //초대코드로 모임 참여
     @PostMapping("/join")
     public ParticipantResponse joinMeeting(
-            @RequestBody CreateParticipantRequest request) {
-        return participantService.joinMeeting(request);
+            @RequestBody CreateParticipantRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        Long userId = userDetails.getUser().getId();
+        return participantService.joinMeeting(request, userId);
     }
     // 특정 모임 참여자 목록 조회
     @GetMapping("/{meetingId}/participants")
@@ -29,6 +31,15 @@ public class ParticipantController {
             @PathVariable Long meetingId) {
         return participantService.getParticipants(meetingId);
     }
+    @GetMapping("/{meetingId}/participants/me")
+    public ParticipantResponse getMyParticipant(
+            @PathVariable Long meetingId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUser().getId();
+        return participantService.getMyParticipant(meetingId, userId);
+    }
+
     @DeleteMapping("/{meetingId}/participants/me")
     public void leaveMeeting(
             @PathVariable Long meetingId,

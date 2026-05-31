@@ -20,6 +20,7 @@ import java.util.UUID;
 public class MeetingService {
     private final ParticipantRepository participantRepository;
     private final MeetingRepository meetingRepository;
+    private final com.w2m.backend.auth.repository.UserRepository userRepository;
 
     public MeetingResponse createMeeting(
             CreateMeetingRequest request, Long userId) {
@@ -36,9 +37,12 @@ public class MeetingService {
         );
         Meeting savedMeeting = meetingRepository.save(meeting);
 
+        com.w2m.backend.auth.entity.User user = userRepository.findById(userId)
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+
         Participant hostParticipant = new Participant(
-                savedMeeting.getId(),
-                userId,
+                savedMeeting,
+                user,
                 Participant.ParticipantRole.HOST
         );
         participantRepository.save(hostParticipant);
@@ -64,8 +68,7 @@ public class MeetingService {
         // 내가 참여한 방 조회
         List<Participant> participants = participantRepository.findByUserId(userId);
         for (Participant participant : participants) {
-            Meeting meeting = meetingRepository.findById(participant.getMeetingId())
-                    .orElseThrow(() -> new IllegalArgumentException("모임이 존재하지 않습니다."));
+            Meeting meeting = participant.getMeeting();
             boolean alreadyAddedAsHost = hostMeetings.stream()
                     .anyMatch(hostMeeting -> hostMeeting.getId().equals(meeting.getId()));
             if (!alreadyAddedAsHost) {

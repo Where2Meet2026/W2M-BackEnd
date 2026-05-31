@@ -50,7 +50,8 @@ public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws
                             "/oauth2/**",
                             "/api/rooms/**",
                             "/swagger-ui/**",
-                            "/v3/api-docs/**"
+                            "/v3/api-docs/**",
+                            "/api/meetings/invite/**"
 
                     ).permitAll()
 

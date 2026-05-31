@@ -21,6 +21,7 @@ public class MeetingService {
     private final ParticipantRepository participantRepository;
     private final MeetingRepository meetingRepository;
     private final com.w2m.backend.auth.repository.UserRepository userRepository;
+    private final com.w2m.backend.availability.repository.AvailabilityRepository availabilityRepository;
 
     public MeetingResponse createMeeting(
             CreateMeetingRequest request, Long userId) {
@@ -95,7 +96,9 @@ public class MeetingService {
         if (!meeting.getHostUserId().equals(userId)) {
             throw new IllegalArgumentException("방장만 모임을 삭제할 수 있습니다.");
         }
-        participantRepository.deleteByMeetingId(meetingId);
+        
+        // CascadeType.ALL 설정으로 인해 meeting 삭제 시 
+        // 하위 participants와 그 하위 availabilities가 모두 자동 삭제됩니다.
         meetingRepository.delete(meeting);
     }
     public MeetingResponse getMeetingByInviteCode(String inviteCode){

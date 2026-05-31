@@ -31,6 +31,10 @@ public class AvailabilityService {
         // 1. 기존 데이터 삭제 (덮어쓰기 방식)
         availabilityRepository.deleteByParticipant(participant);
 
+        // 1.5 참여자의 시간 입력 완료 상태 업데이트
+        participant.updateTimeSelected(true);
+        participantRepository.save(participant);
+
         // 2. 새로운 데이터 생성 및 저장
         List<Availability> availabilities = request.getTimeRanges().stream()
                 .map(range -> Availability.builder()

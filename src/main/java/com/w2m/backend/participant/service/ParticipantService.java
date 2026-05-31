@@ -22,6 +22,7 @@ public class ParticipantService {
     private final ParticipantRepository participantRepository;
     private final MeetingRepository meetingRepository;
     private final UserRepository userRepository;
+    private final com.w2m.backend.availability.repository.AvailabilityRepository availabilityRepository;
 
     @Transactional
     public ParticipantResponse joinMeeting(CreateParticipantRequest request, Long userId) {
@@ -58,7 +59,6 @@ public class ParticipantService {
 
     @Transactional(readOnly = true)
     public List<ParticipantResponse> getParticipants(Long meetingId) {
-
         return participantRepository.findByMeetingId(meetingId)
                 .stream()
                 .map(ParticipantResponse::from)
@@ -81,6 +81,8 @@ public class ParticipantService {
         Participant participant = participantRepository.findByMeetingIdAndUserId(meetingId, userId)
                 .orElseThrow(() -> new IllegalArgumentException("참여 정보가 존재하지 않습니다."));
 
+        // CascadeType.ALL 설정으로 인해 participant 삭제 시 
+        // 해당 참여자의 availabilities가 모두 자동 삭제됩니다.
         participantRepository.delete(participant);
     }
 

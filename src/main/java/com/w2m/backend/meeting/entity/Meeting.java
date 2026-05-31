@@ -1,10 +1,14 @@
 package com.w2m.backend.meeting.entity;
 
+import com.w2m.backend.participant.entity.Participant;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Getter
@@ -15,6 +19,12 @@ public class Meeting {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
+
+    // ... (existing fields)
+
+    // 참여자 목록 (양방향 연관관계 및 영속성 전이 설정)
+    @OneToMany(mappedBy = "meeting", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<Participant> participants = new ArrayList<>();
 
     // 모임을 만든 사용자 ID
     @Column(name = "host_user_id", nullable = false)

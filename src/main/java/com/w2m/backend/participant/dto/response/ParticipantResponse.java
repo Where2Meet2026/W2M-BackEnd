@@ -1,5 +1,6 @@
 package com.w2m.backend.participant.dto.response;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import com.w2m.backend.participant.entity.Participant;
 import lombok.Builder;
 import lombok.Getter;
@@ -16,6 +17,9 @@ public class ParticipantResponse {
     private String role;
     private LocalDateTime joinedAt;
 
+    @JsonProperty("isTimeSelected")
+    private boolean isTimeSelected;
+
     public static ParticipantResponse from(Participant participant) {
         return ParticipantResponse.builder()
                 .participantId(participant.getId())
@@ -24,6 +28,7 @@ public class ParticipantResponse {
                 .userName(participant.getUser().getName())
                 .role(participant.getRole().name())
                 .joinedAt(participant.getJoinedAt())
+                .isTimeSelected(participant.isTimeSelected())
                 .build();
     }
 }

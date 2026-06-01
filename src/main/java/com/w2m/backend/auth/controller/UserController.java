@@ -56,17 +56,28 @@ public class UserController {
     }
 
     @PostMapping("/social-signup")
-    public ResponseEntity<String> socialRegister(@RequestBody SocialRegisterRequestDto socialRegisterRequestDto) {
+    public ResponseEntity<LoginResponseDto> socialRegister(@RequestBody SocialRegisterRequestDto socialRegisterRequestDto) {
         // 1. 이메일 중복 체크
         if(userService.checkLoginIdDuplicate(socialRegisterRequestDto.getEmail())) {
             return ResponseEntity.status(HttpStatus.CONFLICT)
-                    .body("이미 가입된 이메일입니다.");
+                    .body(new LoginResponseDto(null, null, null, "이미 가입된 이메일입니다."));
         }
 
         // 2. 가입 처리 (이때 DB에 저장)
-        userService.socialJoin(socialRegisterRequestDto);
-        return ResponseEntity.status(HttpStatus.CREATED)
-                .body("소셜 회원가입 성공");
+        User user = userService.socialJoin(socialRegisterRequestDto);
+
+        // 3. 가입 성공 후 즉시 JWT 발급 (자동 로그인 효과)
+        long expireTimeMs = 1000 * 60 * 60; // 60분
+        String jwtToken = JwtTokenUtil.createToken(user.getId(), secretKey, expireTimeMs);
+
+        LoginResponseDto response = new LoginResponseDto(
+                jwtToken,
+                user.getName(),
+                user.getEmail(),
+                "소셜 회원가입 및 로그인 성공"
+        );
+
+        return ResponseEntity.status(HttpStatus.CREATED).body(response);
     }
 
 

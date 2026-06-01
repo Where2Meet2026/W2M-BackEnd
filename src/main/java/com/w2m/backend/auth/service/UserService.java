@@ -27,13 +27,13 @@ public class UserService {
 
 
     //회원가입
-    public void join(RegisterRequestDto registerRequestDto) {
-        userRepository.save(registerRequestDto.toEntity(bCryptPasswordEncoder.encode(registerRequestDto.getPassword())));
+    public User join(RegisterRequestDto registerRequestDto) {
+        return userRepository.save(registerRequestDto.toEntity(bCryptPasswordEncoder.encode(registerRequestDto.getPassword())));
     }
 
     //소셜 회원가입
-    public void socialJoin(SocialRegisterRequestDto socialRegisterRequestDto) {
-        userRepository.save(socialRegisterRequestDto.toEntity());
+    public User socialJoin(SocialRegisterRequestDto socialRegisterRequestDto) {
+        return userRepository.save(socialRegisterRequestDto.toEntity());
     }
 
     //로그인

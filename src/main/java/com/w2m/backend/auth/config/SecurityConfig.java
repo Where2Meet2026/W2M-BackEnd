@@ -48,7 +48,11 @@ public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws
                             "/api/v1/status",
                             "/login/oauth2/**",
                             "/oauth2/**",
-                            "/api/rooms/**"
+                            "/api/rooms/**",
+                            "/swagger-ui/**",
+                            "/v3/api-docs/**",
+                            "/api/meetings/invite/**"
+
                     ).permitAll()
 
                     // 그 외 모든 요청은 로그인(authenticated)이 되어야 함

@@ -7,6 +7,7 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -47,6 +48,14 @@ public class Meeting {
     @Column(nullable = false,length = 50)
     private MeetingStatus status;
 
+    //확정된 약속 시작 시간
+    @Column(name = "confirmed_start_date_time")
+    private LocalDateTime confirmedStartDateTime;
+
+    //확정된 약속 종료 시간
+    @Column(name = "confirmed_end_date_time")
+    private LocalDateTime confirmedEndDateTime;
+
     //모임 생성자
     public Meeting(
             Long hostUserId,
@@ -64,6 +73,11 @@ public class Meeting {
         this.status = status;
     }
 
+    public void confirmTime(LocalDateTime startDateTime, LocalDateTime endDateTime) {
+        this.confirmedStartDateTime = startDateTime;
+        this.confirmedEndDateTime = endDateTime;
+        this.status = MeetingStatus.COLLECTING_LOCATION;
+    }
     public enum MeetingStatus {
         WAITING_PARTICIPANTS, //참여자 모집 중
         COLLECTING_TIME, // 시간 입력 중

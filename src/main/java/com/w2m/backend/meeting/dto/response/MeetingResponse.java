@@ -4,6 +4,8 @@ import com.w2m.backend.meeting.entity.Meeting;
 import lombok.Builder;
 import lombok.Getter;
 
+import java.time.LocalDateTime;
+
 @Getter
 @Builder
 public class MeetingResponse {
@@ -15,6 +17,8 @@ public class MeetingResponse {
     private String status;
 
     private String role;
+    private LocalDateTime confirmedStartDateTime;
+    private LocalDateTime confirmedEndDateTime;
     private boolean canDelete;
     private boolean canLeave;
 
@@ -25,6 +29,8 @@ public class MeetingResponse {
                 .description(meeting.getDescription())
                 .inviteCode(meeting.getInviteCode())
                 .status(meeting.getStatus().name())
+                .confirmedStartDateTime(meeting.getConfirmedStartDateTime())
+                .confirmedEndDateTime(meeting.getConfirmedEndDateTime())
                 .build();
     }
     public static MeetingResponse from(Meeting meeting, String role) {
@@ -34,6 +40,8 @@ public class MeetingResponse {
                 .description(meeting.getDescription())
                 .inviteCode(meeting.getInviteCode())
                 .status(meeting.getStatus().name())
+                .confirmedStartDateTime(meeting.getConfirmedStartDateTime())
+                .confirmedEndDateTime(meeting.getConfirmedEndDateTime())
                 .role(role)
                 .canDelete("HOST".equals(role))
                 .canLeave("PARTICIPANT".equals(role))

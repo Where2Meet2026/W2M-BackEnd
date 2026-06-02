@@ -1,6 +1,7 @@
 package com.w2m.backend.meeting.service;
 
 
+import com.w2m.backend.meeting.dto.request.ConfirmMeetingTimeRequest;
 import com.w2m.backend.meeting.dto.request.CreateMeetingRequest;
 import com.w2m.backend.meeting.dto.request.UpdateMeetingStatusRequest;
 import com.w2m.backend.meeting.dto.response.MeetingResponse;
@@ -104,6 +105,23 @@ public class MeetingService {
     public MeetingResponse getMeetingByInviteCode(String inviteCode){
         Meeting meeting = meetingRepository.findByInviteCode(inviteCode)
                 .orElseThrow(()-> new IllegalArgumentException("초대 코드에 해당하는 방이 없습니다."));
+        return MeetingResponse.from(meeting);
+    }
+    @Transactional
+    public MeetingResponse confirmMeetingTime(
+            Long meetingId,
+            ConfirmMeetingTimeRequest request,
+            Long userId
+    ) {
+        Meeting meeting = meetingRepository.findById(meetingId)
+                .orElseThrow(() -> new IllegalArgumentException("모임이 존재하지 않습니다."));
+
+        if (!meeting.getHostUserId().equals(userId)) {
+            throw new IllegalArgumentException("방장만 약속 시간을 확정할 수 있습니다.");
+        }
+
+        meeting.confirmTime(request.getStartDateTime(), request.getEndDateTime());
+
         return MeetingResponse.from(meeting);
     }
 }

@@ -1,0 +1,14 @@
+SecretKey: 'replace-me'
+KAKAO_CLIENT_ID: 'replace-me'
+
+spring:
+  datasource:
+    url: jdbc:mariadb://localhost:3306/W2M
+    username: root
+    password: 'replace-me'
+    driver-class-name: org.mariadb.jdbc.Driver
+
+  jpa:
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.MariaDBDialect

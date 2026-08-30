@@ -1,9 +1,9 @@
 package com.w2m.backend.auth.controller;
 
-import com.w2m.backend.auth.dto.LoginRequestDto;
-import com.w2m.backend.auth.dto.LoginResponseDto;
-import com.w2m.backend.auth.dto.RegisterRequestDto;
-import com.w2m.backend.auth.dto.SocialRegisterRequestDto;
+import com.w2m.backend.auth.dto.request.LoginRequestDto;
+import com.w2m.backend.auth.dto.response.LoginResponseDto;
+import com.w2m.backend.auth.dto.request.RegisterRequestDto;
+import com.w2m.backend.auth.dto.request.SocialRegisterRequestDto;
 import com.w2m.backend.auth.entity.User;
 import com.w2m.backend.auth.jwt.JwtTokenUtil;
 import com.w2m.backend.auth.service.LogoutService;

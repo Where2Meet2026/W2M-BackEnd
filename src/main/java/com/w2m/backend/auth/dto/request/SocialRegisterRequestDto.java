@@ -1,4 +1,4 @@
-package com.w2m.backend.auth.dto;
+package com.w2m.backend.auth.dto.request;
 
 import com.w2m.backend.auth.entity.Provider;
 import com.w2m.backend.auth.entity.User;

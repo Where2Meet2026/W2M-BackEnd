@@ -51,12 +51,13 @@ public class MeetingService {
 
         return MeetingResponse.from(savedMeeting, "HOST");
     }
-    public MeetingResponse getMeeting(Long meetingId){
+    public MeetingResponse getMeeting(Long meetingId, Long userId){
 
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new IllegalArgumentException("모임이 존재하지않습니다."));
 
-        return MeetingResponse.from(meeting);
+        String role = meeting.getHostUserId().equals(userId) ? "HOST" : "PARTICIPANT";
+        return MeetingResponse.from(meeting, role);
     }
     @Transactional(readOnly = true)
 
@@ -80,14 +81,15 @@ public class MeetingService {
         return result;
 
     }
-    public MeetingResponse updateMeetingStatus(Long meetingId, UpdateMeetingStatusRequest request){
+    public MeetingResponse updateMeetingStatus(Long meetingId, UpdateMeetingStatusRequest request, Long userId){
 
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow( ()-> new IllegalArgumentException("모임이 존재하지 않습니다."));
 
         meeting.updateStatus(request.getStatus());
 
-        return MeetingResponse.from(meeting);
+        String role = meeting.getHostUserId().equals(userId) ? "HOST" : "PARTICIPANT";
+        return MeetingResponse.from(meeting, role);
     }
 
     @Transactional
@@ -105,7 +107,8 @@ public class MeetingService {
     public MeetingResponse getMeetingByInviteCode(String inviteCode){
         Meeting meeting = meetingRepository.findByInviteCode(inviteCode)
                 .orElseThrow(()-> new IllegalArgumentException("초대 코드에 해당하는 방이 없습니다."));
-        return MeetingResponse.from(meeting);
+        // 로그인 없이도 호출되는 공개 API라 role을 판단할 사용자가 없음
+        return MeetingResponse.from(meeting, null);
     }
     @Transactional
     public MeetingResponse confirmMeetingTime(
@@ -122,6 +125,7 @@ public class MeetingService {
 
         meeting.confirmTime(request.getStartDateTime(), request.getEndDateTime());
 
-        return MeetingResponse.from(meeting);
+        // 위에서 이미 방장인지 확인했으므로 role은 항상 HOST
+        return MeetingResponse.from(meeting, "HOST");
     }
 }

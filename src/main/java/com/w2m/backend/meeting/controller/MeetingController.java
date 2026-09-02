@@ -29,9 +29,12 @@ public class MeetingController {
         return meetingService.createMeeting(request,userId);
     }
     @GetMapping("/{meetingId}")
-    public MeetingResponse getMeeting(@PathVariable Long meetingId) {
-
-        return meetingService.getMeeting(meetingId);
+    public MeetingResponse getMeeting(
+            @PathVariable Long meetingId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUser().getId();
+        return meetingService.getMeeting(meetingId, userId);
     }
     @GetMapping("/my")
     public List<MeetingResponse> getMyMeetings(
@@ -44,9 +47,11 @@ public class MeetingController {
     @PatchMapping("/{meetingId}/status")
     public MeetingResponse updateMeetingStatus(
             @PathVariable Long meetingId,
-            @RequestBody UpdateMeetingStatusRequest request) {
+            @RequestBody UpdateMeetingStatusRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
 
-        return meetingService.updateMeetingStatus(meetingId, request);
+        Long userId = userDetails.getUser().getId();
+        return meetingService.updateMeetingStatus(meetingId, request, userId);
     }
     @DeleteMapping("/{meetingId}")
     public void deleteMeeting(

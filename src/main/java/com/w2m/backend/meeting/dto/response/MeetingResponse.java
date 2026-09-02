@@ -22,17 +22,6 @@ public class MeetingResponse {
     private boolean canDelete;
     private boolean canLeave;
 
-    public static MeetingResponse from(Meeting meeting) {
-        return MeetingResponse.builder()
-                .meetingId(meeting.getId())
-                .title(meeting.getTitle())
-                .description(meeting.getDescription())
-                .inviteCode(meeting.getInviteCode())
-                .status(meeting.getStatus().name())
-                .confirmedStartDateTime(meeting.getConfirmedStartDateTime())
-                .confirmedEndDateTime(meeting.getConfirmedEndDateTime())
-                .build();
-    }
     public static MeetingResponse from(Meeting meeting, String role) {
         return MeetingResponse.builder()
                 .meetingId(meeting.getId())

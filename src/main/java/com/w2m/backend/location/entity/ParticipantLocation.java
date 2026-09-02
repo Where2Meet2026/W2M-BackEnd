@@ -7,6 +7,8 @@ import lombok.Builder;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
+
 @Entity
 @Table(name = "participant_locations")
 @Getter
@@ -21,6 +23,10 @@ public class ParticipantLocation {
     @JoinColumn(name = "participant_id", nullable = false)
     private Participant participant;
 
+    // 이 위치가 적용되는 날짜 (참여자가 날짜별로 다른 출발 위치를 등록할 수 있음)
+    @Column(nullable = false)
+    private LocalDate date;
+
     @Column(nullable = false)
     private String address;
 
@@ -31,8 +37,9 @@ public class ParticipantLocation {
     private Double longitude;
 
     @Builder
-    public ParticipantLocation(Participant participant, String address, Double latitude, Double longitude) {
+    public ParticipantLocation(Participant participant, LocalDate date, String address, Double latitude, Double longitude) {
         this.participant = participant;
+        this.date = date;
         this.address = address;
         this.latitude = latitude;
         this.longitude = longitude;

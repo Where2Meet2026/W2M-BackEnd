@@ -5,6 +5,5 @@ import lombok.Getter;
 @Getter
 public class CreateParticipantRequest {
     private String inviteCode;
-    private Long userId;
 
 }

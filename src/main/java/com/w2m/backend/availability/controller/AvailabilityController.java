@@ -26,13 +26,6 @@ public class AvailabilityController {
         availabilityService.saveAvailabilities(participantId, request);
     }
 
-    @PutMapping
-    public void updateAvailabilities(
-            @PathVariable Long participantId,
-            @Valid @RequestBody SaveAvailabilityRequest request) {
-        availabilityService.saveAvailabilities(participantId, request);
-    }
-
     @GetMapping
     public List<AvailabilityResponse> getAvailabilities(@PathVariable Long participantId) {
         return availabilityService.getAvailabilities(participantId).stream()

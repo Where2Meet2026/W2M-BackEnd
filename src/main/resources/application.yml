@@ -49,3 +49,8 @@ logging:
   level:
     org.springframework.security: DEBUG
     org.springframework.security.oauth2: DEBUG
+
+springdoc:
+  swagger-ui:
+    persist-authorization: true
+#    Swagger 화면에서 Authorize에 입력한 인증 정보(토큰)를 브라우저에 저장해서 계속 유지

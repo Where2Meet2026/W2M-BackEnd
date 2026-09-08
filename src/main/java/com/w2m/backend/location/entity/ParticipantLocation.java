@@ -17,8 +17,9 @@ public class ParticipantLocation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "participant_id", nullable = false)
+    // 참여자당 출발 위치는 최대 1건 (시간 확정 후 1회 입력, 9/2 결정)
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "participant_id", nullable = false, unique = true)
     private Participant participant;
 
     @Column(nullable = false)
@@ -33,6 +34,13 @@ public class ParticipantLocation {
     @Builder
     public ParticipantLocation(Participant participant, String address, Double latitude, Double longitude) {
         this.participant = participant;
+        this.address = address;
+        this.latitude = latitude;
+        this.longitude = longitude;
+    }
+
+    // 등록/수정 구분 없이 덮어쓰는 upsert 방식 (availabilities와 동일 패턴)
+    public void update(String address, Double latitude, Double longitude) {
         this.address = address;
         this.latitude = latitude;
         this.longitude = longitude;

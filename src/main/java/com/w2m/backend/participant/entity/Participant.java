@@ -50,16 +50,25 @@ public class Participant {
     @Column(name = "is_time_selected", nullable = false)
     private boolean isTimeSelected = false;
 
+    // 위치 입력 완료 여부
+    @Column(name = "is_location_selected", nullable = false)
+    private boolean isLocationSelected = false;
+
     // 참여자 생성용 생성자
     public Participant(Meeting meeting, User user, ParticipantRole role) {
         this.meeting = meeting;
         this.user = user;
         this.role = role;
         this.isTimeSelected = false;
+        this.isLocationSelected = false;
     }
 
     public void updateTimeSelected(boolean isTimeSelected) {
         this.isTimeSelected = isTimeSelected;
+    }
+
+    public void updateLocationSelected(boolean isLocationSelected) {
+        this.isLocationSelected = isLocationSelected;
     }
     // DB 저장 직전에 자동 실행
     @PrePersist

@@ -11,7 +11,7 @@ import org.springframework.web.client.RestTemplate;
 @Component
 public class KakaoLocalApiClient {
 
-    @Value("${KAKAO_REST_API_KEY}")
+    @Value("${KAKAO_REST_API_KEY}") // 카카오 로그인용 KAKAO_CLIENT_ID와는 다른 키 (로컬 장소검색 API 전용)
     private String restApiKey;
 
     private final RestTemplate restTemplate = new RestTemplate();
@@ -27,5 +27,18 @@ public class KakaoLocalApiClient {
         ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity,
                 String.class);
         return response.getBody();
+    }
+    public String searchByCategory(double latitude, double longitude, int radiusMeters, String categoryGroupCode) {
+        String url = "https://dapi.kakao.com/v2/local/search/category.json?category_group_code=" +
+                categoryGroupCode +"&x=" + longitude+"&y=" + latitude + "&radius="+ radiusMeters;
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add("Authorization", "KakaoAK " + restApiKey);
+
+        HttpEntity<Void> entity = new HttpEntity<>(headers);
+
+        ResponseEntity<String> response = restTemplate.exchange(url, HttpMethod.GET, entity,
+                String.class);
+        return response.getBody(); // 카카오가 보내준 거 본문만 받아오기
     }
 }

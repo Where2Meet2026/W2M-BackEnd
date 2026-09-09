@@ -20,5 +20,13 @@ public class KakaoLocalApiClientTest {
         assertThat(result).isNotNull();
         assertThat(result).contains("documents");
     }
+    @Test
+    void 중간지점근처음식점을검색하결과가나옴() {
+        String result = kakaoLocalApiClient.searchByCategory(37.4979, 127.0276,1000, "FD6");
+
+        System.out.println("결과는 : " + result);
+        assertThat(result).isNotNull(); //응답이 비어있으면 실패
+        assertThat(result).contains("documents"); // documents라는 단어 없으면 실패
+    }
 
 }

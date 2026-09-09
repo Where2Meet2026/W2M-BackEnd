@@ -1,5 +1,6 @@
 package com.w2m.backend.candidate.util;
 
+// 하버사인 공식: 지구를 구로 가정한 두 좌표 간 직선거리(미터) 계산
 public class DistanceCalculator {
 
     private static final double EARTH_RADIUS_METERS = 6371000;

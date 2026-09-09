@@ -37,5 +37,6 @@ public class CandidateReaction {
     public enum ReactionType {
         LIKE,
         DISLIKE
+        // 반응 취소는 NONE 값을 저장하지 않고, 이 row 자체를 삭제하는 방식으로 처리
     }
 }

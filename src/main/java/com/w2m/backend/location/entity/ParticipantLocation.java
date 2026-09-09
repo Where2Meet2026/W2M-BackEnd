@@ -17,8 +17,9 @@ public class ParticipantLocation {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    // 참여자당 출발 위치는 최대 1건 (시간 확정 후 1회 입력, 9/2 결정)
-    @OneToOne(fetch = FetchType.LAZY)
+    // 참여자당 출발 위치는 최대 1건 (unique 제약으로 1:1 보장, 시간 확정 후 1회 입력)
+    // 양방향은 Participant.locations 쪽에서 cascade/orphanRemoval 담당
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "participant_id", nullable = false, unique = true)
     private Participant participant;
 

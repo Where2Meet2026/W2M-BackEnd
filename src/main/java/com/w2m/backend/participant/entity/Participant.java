@@ -2,6 +2,7 @@ package com.w2m.backend.participant.entity;
 
 import com.w2m.backend.auth.entity.User;
 import com.w2m.backend.availability.entity.Availability;
+import com.w2m.backend.location.entity.ParticipantLocation;
 import com.w2m.backend.meeting.entity.Meeting;
 import jakarta.persistence.*;
 import lombok.AccessLevel;
@@ -26,6 +27,10 @@ public class Participant {
     // 가용 시간 목록 (양방향 연관관계 및 영속성 전이 설정)
     @OneToMany(mappedBy = "participant", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Availability> availabilities = new ArrayList<>();
+
+    // 출발 위치 (참여자당 최대 1건, 참여자 삭제 시 함께 삭제)
+    @OneToMany(mappedBy = "participant", cascade = CascadeType.ALL, orphanRemoval = true)
+    private List<ParticipantLocation> locations = new ArrayList<>();
 
     // 어떤 모임에 참여했는지
     @ManyToOne(fetch = FetchType.LAZY)

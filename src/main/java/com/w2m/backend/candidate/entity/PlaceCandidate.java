@@ -17,7 +17,7 @@ public class PlaceCandidate {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY) // LAZY : meeting을 실제로 사용할 때까지 조회x
     @JoinColumn(name = "meeting_id", nullable = false)
     private Meeting meeting;
 

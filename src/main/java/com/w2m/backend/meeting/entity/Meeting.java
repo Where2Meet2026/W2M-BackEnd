@@ -35,6 +35,11 @@ public class Meeting {
     @Column(nullable = false ,length = 100)
     private String title;
 
+    //모임 목적 (장소 추천 카테고리 결정에 사용, null 이면 "상관없음"으로 처리)
+    @Enumerated(EnumType.STRING)
+    @Column(length =  30)
+    private MeetingPurpose purpose;
+
     //모임 설명
     @Column(length = 500)
     private String description;
@@ -55,6 +60,8 @@ public class Meeting {
     //확정된 약속 종료 시간
     @Column(name = "confirmed_end_date_time")
     private LocalDateTime confirmedEndDateTime;
+
+
 
     //모임 생성자
     public Meeting(
@@ -87,5 +94,10 @@ public class Meeting {
         RECOMMENDATION_READY, // 추천 생성 중
         VOTING, // 투표 중
         CONFIRMED // 최종 확정
+    }
+    public enum MeetingPurpose {
+        MEAL,
+        CAFE,
+        ANY
     }
 }

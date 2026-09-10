@@ -11,8 +11,10 @@ public record KakaoLocalSearchResponse(
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record KakaoPlaceDto (
+            @JsonProperty("id") String placeId,
             @JsonProperty("place_name") String placeName,
             @JsonProperty("address_name") String addressName,
+            @JsonProperty("category_name") String categoryName,
             @JsonProperty("x") String longitude,
             @JsonProperty("y") String latitude
     ) {}

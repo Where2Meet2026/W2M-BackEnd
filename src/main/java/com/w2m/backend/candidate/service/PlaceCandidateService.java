@@ -108,9 +108,10 @@ public class PlaceCandidateService {
                 .toList();
     }
     private PlaceCandidate toEntity(Meeting meeting, CandidateScore score,
-PlaceCandidate.CandidateType type) {
+                                    PlaceCandidate.CandidateType type) {
         return PlaceCandidate.builder()
                 .meeting(meeting)
+                .kakaoPlaceId(score.place().placeId())
                 .placeName(score.place().placeName())
                 .address(score.place().addressName())
                 .latitude(Double.parseDouble(score.place().latitude()))
@@ -118,7 +119,18 @@ PlaceCandidate.CandidateType type) {
                 .type(type)
                 .avgDistanceMeters(score.avgDistance())
                 .maxDistanceMeters(score.maxDistance())
+                .description(buildDescription(type, score))
                 .build();
+    }
+
+    // 리뷰 없는 초기 단계용 설명 문장 — 우리가 계산한 실제 데이터로만 구성
+    private String buildDescription(PlaceCandidate.CandidateType type, CandidateScore score) {
+        String reason = switch (type) {
+            case FASTEST -> "참여자들과 평균적으로 가장 가까운 곳이에요";
+            case BALANCED -> "참여자들 간 이동 거리가 가장 고르게 나뉘는 곳이에요";
+            case OPTIMAL -> "그다음으로 무난하게 가까운 곳이에요";
+        };
+        return String.format("%s (%s, 평균 %.0fm)", reason, score.place().categoryName(), score.avgDistance());
     }
     public record Coordinate(double latitude, double longitude){}
 

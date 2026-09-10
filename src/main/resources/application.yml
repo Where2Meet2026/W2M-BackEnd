@@ -45,6 +45,17 @@ spring:
             user-info-uri: https://kapi.kakao.com/v2/user/me
             user-name-attribute: id
 
+notification:
+  push:
+    # false면 실제 발송 대신 로그만 남김 (개발/CI용)
+    enabled: ${NOTIFICATION_PUSH_ENABLED:true}
+  vapid:
+    subject: ${VAPID_SUBJECT:mailto:noreply@w2m.example}
+    public-key: ${VAPID_PUBLIC_KEY:}
+    private-key: ${VAPID_PRIVATE_KEY:}
+  # 알림 클릭 시 이동할 프론트엔드 베이스 URL
+  web-base-url: ${NOTIFICATION_WEB_BASE_URL:http://localhost:5173}
+
 logging:
   level:
     org.springframework.security: DEBUG

@@ -6,10 +6,12 @@ import com.w2m.backend.meeting.dto.request.CreateMeetingRequest;
 import com.w2m.backend.meeting.dto.request.UpdateMeetingStatusRequest;
 import com.w2m.backend.meeting.dto.response.MeetingResponse;
 import com.w2m.backend.meeting.entity.Meeting;
+import com.w2m.backend.meeting.event.MeetingTimeConfirmedEvent;
 import com.w2m.backend.meeting.repository.MeetingRepository;
 import com.w2m.backend.participant.entity.Participant;
 import com.w2m.backend.participant.repository.ParticipantRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +25,7 @@ public class MeetingService {
     private final MeetingRepository meetingRepository;
     private final com.w2m.backend.auth.repository.UserRepository userRepository;
     private final com.w2m.backend.availability.repository.AvailabilityRepository availabilityRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     public MeetingResponse createMeeting(
             CreateMeetingRequest request, Long userId) {
@@ -124,6 +127,9 @@ public class MeetingService {
         }
 
         meeting.confirmTime(request.getStartDateTime(), request.getEndDateTime());
+
+        // 커밋 후 참여자 전원에게 시간 확정 알림 발송 (NotificationEventListener)
+        eventPublisher.publishEvent(new MeetingTimeConfirmedEvent(meetingId));
 
         // 위에서 이미 방장인지 확인했으므로 role은 항상 HOST
         return MeetingResponse.from(meeting, "HOST");

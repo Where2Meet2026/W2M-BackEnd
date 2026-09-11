@@ -16,10 +16,12 @@ import com.w2m.backend.participant.repository.ParticipantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.w2m.backend.candidate.dto.response.KakaoLocalSearchResponse.KakaoPlaceDto;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 @Service
 @RequiredArgsConstructor
@@ -169,6 +171,32 @@ public class PlaceCandidateService {
                     return CandidateResponse.of(candidate, likeCount, dislikeCount, myReaction);
                 })
                 .toList();
+    }
+    @Transactional
+    public void toggleReaction(Long meetingId, Long candidateId, Long userId,
+   CandidateReaction.ReactionType requestedType) {
+        Participant participant = participantRepository.findByMeetingIdAndUserId(meetingId, userId)
+                .orElseThrow(() -> new IllegalArgumentException("이 모임의 참가자가 아닙니다."));
+
+        PlaceCandidate candidate = placeCandidateRepository.findById(candidateId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 후보입니다."));
+
+        Optional<CandidateReaction> existing =
+                candidateReactionRepository.findByCandidateAndParticipant(candidate, participant);
+
+        if(existing.isPresent()) {
+            if (existing.get().getReactionType() == requestedType) {
+                candidateReactionRepository.delete(existing.get()); // 같은 반응 다시 누르면 취소
+            } else {
+                existing.get().updateReactionType(requestedType); // 다른 반응으로 변경
+            }
+        }else {
+            candidateReactionRepository.save(CandidateReaction.builder()
+                    .candidate(candidate)
+                    .participant(participant)
+                    .reactionType(requestedType)
+                    .build());
+        }
     }
 }
 

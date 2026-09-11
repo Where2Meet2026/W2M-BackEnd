@@ -1,14 +1,12 @@
 package com.w2m.backend.candidate.controller;
 
 import com.w2m.backend.auth.jwt.CustomUserDetails;
+import com.w2m.backend.candidate.dto.request.ReactionRequest;
 import com.w2m.backend.candidate.dto.response.CandidateResponse;
 import com.w2m.backend.candidate.service.PlaceCandidateService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
@@ -25,5 +23,17 @@ public class CandidateController {
         Long userId = userDetails.getUser().getId();
         return placeCandidateService.getCandidates(meetingId, userId);
     }
+
+    @PostMapping("/{candidateId}/reactions")
+    public void react(
+            @PathVariable Long meetingId,
+            @PathVariable Long candidateId,
+            @RequestBody ReactionRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails){
+        Long userId = userDetails.getUser().getId();
+        placeCandidateService.toggleReaction(meetingId, candidateId, userId,
+    request.getReactionType());
+    }
+
 
 }

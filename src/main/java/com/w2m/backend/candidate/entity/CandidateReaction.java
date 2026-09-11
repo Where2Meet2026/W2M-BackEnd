@@ -34,6 +34,9 @@ public class CandidateReaction {
         this.participant = participant;
         this.reactionType = reactionType;
     }
+    public void updateReactionType(ReactionType reactionType) {
+        this.reactionType = reactionType;
+    }
     public enum ReactionType {
         LIKE,
         DISLIKE

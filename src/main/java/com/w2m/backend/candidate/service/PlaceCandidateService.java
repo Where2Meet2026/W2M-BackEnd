@@ -1,14 +1,18 @@
 package com.w2m.backend.candidate.service;
 
 import com.w2m.backend.candidate.client.KakaoLocalApiClient;
-import com.w2m.backend.candidate.dto.response.KakaoLocalSearchResponse;
+import com.w2m.backend.candidate.dto.response.CandidateResponse;
+import com.w2m.backend.candidate.entity.CandidateReaction;
 import com.w2m.backend.candidate.entity.PlaceCandidate;
+import com.w2m.backend.candidate.repository.CandidateReactionRepository;
 import com.w2m.backend.candidate.repository.PlaceCandidateRepository;
 import com.w2m.backend.candidate.util.DistanceCalculator;
 import com.w2m.backend.location.entity.ParticipantLocation;
 import com.w2m.backend.location.repository.ParticipantLocationRepository;
 import com.w2m.backend.meeting.entity.Meeting;
 import com.w2m.backend.meeting.repository.MeetingRepository;
+import com.w2m.backend.participant.entity.Participant;
+import com.w2m.backend.participant.repository.ParticipantRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.w2m.backend.candidate.dto.response.KakaoLocalSearchResponse.KakaoPlaceDto;
@@ -25,8 +29,10 @@ public class PlaceCandidateService {
     private final PlaceCandidateRepository placeCandidateRepository;
     private final MeetingRepository meetingRepository;
     private final KakaoLocalApiClient kakaoLocalApiClient;
+    private final CandidateReactionRepository candidateReactionRepository;
 
     private static final int SEARCH_RADIUS_METERS = 1500;
+    private final ParticipantRepository participantRepository;
 
     // 참여자 전원 위치의 평균 좌표 = 카카오 장소 검색의 중심점으로 사용
     public Coordinate calculateCentroid(Long meetingId){
@@ -123,19 +129,47 @@ public class PlaceCandidateService {
                 .build();
     }
 
-    // 리뷰 없는 초기 단계용 설명 문장 — 우리가 계산한 실제 데이터로만 구성
+    /* 리뷰 없는 초기 단계용 설명 문장 — 우리가 계산한 실제 데이터로만 구성
+    근데 문장력이 좀 아쉬워서 리뷰 도메인 완성 후 LLM API 붙여서
+    API에서 받아온 실제 데이터들을 LLM에 넘겨 자연스러운 문장 구현 해달라고 할 예정 */
     private String buildDescription(PlaceCandidate.CandidateType type, CandidateScore score) {
-        String reason = switch (type) {
-            case FASTEST -> "참여자들과 평균적으로 가장 가까운 곳이에요";
-            case BALANCED -> "참여자들 간 이동 거리가 가장 고르게 나뉘는 곳이에요";
-            case OPTIMAL -> "그다음으로 무난하게 가까운 곳이에요";
+        int distance = (int) Math.round(score.avgDistance());
+
+        return switch (type) {
+            case FASTEST -> String.format("참여자들과 평균 %dm로 가장 가까운 곳이에요!", distance);
+            case BALANCED -> String.format("참여자들 간 이동 거리 차이가 적어, 다 같이 부담 없이 모일 수 있는 곳이에요. (평균 %dm)", distance);
+            case OPTIMAL -> String.format("평균 %dm 거리의 무난한 곳이에요.", distance);
         };
-        return String.format("%s (%s, 평균 %.0fm)", reason, score.place().categoryName(), score.avgDistance());
     }
     public record Coordinate(double latitude, double longitude){}
 
     private record CandidateScore(KakaoPlaceDto place, double avgDistance, double maxDistance,
   double spread) {}
+
+    public List<CandidateResponse> getCandidates(Long meetingId ,Long userId) {
+        List<PlaceCandidate> candidates = placeCandidateRepository.findByMeetingId(meetingId);
+        if (candidates.isEmpty()) { //후보 없으면 그 자리에서 생성
+            candidates = generateCandidates(meetingId);
+        }
+
+        Participant participant = participantRepository.findByMeetingIdAndUserId(meetingId,userId)
+                .orElseThrow(() -> new IllegalArgumentException("이 모임의 참여자가 아닙니다."));
+
+        return candidates.stream()
+                .map(candidate -> {
+                    long likeCount = candidateReactionRepository.countByCandidateAndReactionType(
+                            candidate, CandidateReaction.ReactionType.LIKE);
+                    long dislikeCount = candidateReactionRepository.countByCandidateAndReactionType(
+                            candidate, CandidateReaction.ReactionType.DISLIKE);
+                    CandidateReaction.ReactionType myReaction = candidateReactionRepository.
+                            findByCandidateAndParticipant(candidate, participant)
+                            .map(CandidateReaction::getReactionType).
+                            orElse(null);
+
+                    return CandidateResponse.of(candidate, likeCount, dislikeCount, myReaction);
+                })
+                .toList();
+    }
 }
 
 

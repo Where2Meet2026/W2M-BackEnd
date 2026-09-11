@@ -1,5 +1,6 @@
 package com.w2m.backend.participant.repository;
 
+import com.w2m.backend.auth.entity.User;
 import com.w2m.backend.participant.entity.Participant;
 import org.springframework.data.jpa.repository.JpaRepository;
 
@@ -12,4 +13,6 @@ public interface ParticipantRepository extends JpaRepository<Participant,Long> {
     List<Participant> findByUserId(Long userId); 
     Optional<Participant> findByMeetingIdAndUserId(Long meetingId, Long userId);
     void deleteByMeetingId(Long meetingId);
+
+    Long user(User user);
 }

@@ -13,6 +13,7 @@ public class MeetingResponse {
     private Long meetingId;
     private String title;
     private String description;
+    private String category;
     private String inviteCode;
     private String status;
 
@@ -27,6 +28,7 @@ public class MeetingResponse {
                 .meetingId(meeting.getId())
                 .title(meeting.getTitle())
                 .description(meeting.getDescription())
+                .category(meeting.getCategory() != null ? meeting.getCategory().name() : null)
                 .inviteCode(meeting.getInviteCode())
                 .status(meeting.getStatus().name())
                 .confirmedStartDateTime(meeting.getConfirmedStartDateTime())

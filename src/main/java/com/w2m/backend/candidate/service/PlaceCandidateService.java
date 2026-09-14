@@ -18,10 +18,8 @@ import org.springframework.stereotype.Service;
 import com.w2m.backend.candidate.dto.response.KakaoLocalSearchResponse.KakaoPlaceDto;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.util.Collections;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -61,7 +59,7 @@ public class PlaceCandidateService {
     participantLocationRepository.findAllByMeetingId(meetingId);
         Coordinate centroid = calculateCentroid(meetingId);
 
-        List<KakaoPlaceDto> places = searchCandidatePlaces(centroid, meeting.getPurpose());
+        List<KakaoPlaceDto> places = searchCandidatePlaces(centroid, meeting.getCategory());
 
         List<CandidateScore> scores = places.stream()
                 .map(place -> scorePlace(place, locations))
@@ -100,10 +98,10 @@ public class PlaceCandidateService {
 
         return new CandidateScore(place, avg, max, max - min);
     }
-    private List<KakaoPlaceDto> searchCandidatePlaces(Coordinate centroid, Meeting.MeetingPurpose purpose) {
-        Meeting.MeetingPurpose effectivePurpose = (purpose != null) ? purpose : Meeting.MeetingPurpose.ANY;
+    private List<KakaoPlaceDto> searchCandidatePlaces(Coordinate centroid, Meeting.PlaceCategory category) {
+        Meeting.PlaceCategory effectiveCategory = (category != null) ? category : Meeting.PlaceCategory.ANY;
 
-        List<String> categoryCodes = switch (effectivePurpose) {
+        List<String> categoryCodes = switch (effectiveCategory) {
             case MEAL -> List.of("FD6");
             case CAFE -> List.of("CE7");
             case ANY -> List.of("FD6", "CE7");
@@ -197,7 +195,43 @@ public class PlaceCandidateService {
                     .reactionType(requestedType)
                     .build());
         }
+        checkAndReplaceIfMajorityDisLiked(meetingId, candidate);
     }
+    private static final double MAJORITY_THRESHOLD = 0.5;
+
+    private void checkAndReplaceIfMajorityDisLiked(Long meetingId, PlaceCandidate candidate) {
+        long totalParticipants = participantRepository.findByMeetingId(meetingId).size();
+        long dislikeCount = candidateReactionRepository.countByCandidateAndReactionType(
+                candidate, CandidateReaction.ReactionType.DISLIKE);
+
+        if (dislikeCount <= totalParticipants * MAJORITY_THRESHOLD) {
+            return; //아직 과반 아님 ,그냥 끝냄
+        }
+        replaceCandidate(meetingId, candidate);
+    }
+    private void replaceCandidate(Long meetingId, PlaceCandidate oldCandidate) {
+        Meeting meeting = oldCandidate.getMeeting();
+        List<ParticipantLocation> locations =
+    participantLocationRepository.findAllByMeetingId(meetingId);
+        Coordinate centroid = calculateCentroid(meetingId);
+
+        Set<String> excludePlaceNames = placeCandidateRepository.findByMeetingId(meetingId).stream() // 중복 없는 값들의 모임
+                .map(PlaceCandidate::getPlaceName)
+                .collect(Collectors.toSet());
+
+        CandidateScore replacement = searchCandidatePlaces(centroid, meeting.getCategory()).stream()
+                .map(place -> scorePlace(place,locations))
+                .filter(score -> !excludePlaceNames.contains(score.place().placeName())) //이미 후보로 있는 장소는 제외함
+                .min(Comparator.comparingDouble(CandidateScore::avgDistance))
+                .orElseThrow(()-> new IllegalStateException("교체할 후보를 찾을 수 없습니다"));
+
+        /* 재교체 순서: 반응부터 지우고(deleteByCandidate) → 후보 지우고(delete) → 새 후보 저장(save).
+        순서가 중요함 — 반응을 먼저 안 지우면 후보를 못 지움 (외래키 때문, CandidateReaction이 candidate_id로 참조하고 있음).*/
+        candidateReactionRepository.deleteByCandidate(oldCandidate);
+        placeCandidateRepository.delete(oldCandidate);
+        placeCandidateRepository.save(toEntity(meeting, replacement, oldCandidate.getType()));
+    }
+
 }
 
 

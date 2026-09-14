@@ -17,9 +17,12 @@ public class PlaceCandidate {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY) // LAZY : meeting을 실제로 사용할 때까지 조회x
     @JoinColumn(name = "meeting_id", nullable = false)
     private Meeting meeting;
+
+    @Column(name = "kakao_place_id", nullable = false)
+    private String kakaoPlaceId;
 
     @Column(nullable = false)
     private String placeName;
@@ -49,9 +52,10 @@ public class PlaceCandidate {
     private String description;
 
     @Builder
-    public PlaceCandidate(Meeting meeting, String placeName, String address, Double latitude, Double longitude,
+    public PlaceCandidate(Meeting meeting, String kakaoPlaceId, String placeName, String address, Double latitude, Double longitude,
                            CandidateType type, Double avgDistanceMeters, Double maxDistanceMeters, String description) {
         this.meeting = meeting;
+        this.kakaoPlaceId = kakaoPlaceId;
         this.placeName = placeName;
         this.address = address;
         this.latitude = latitude;

@@ -35,7 +35,8 @@ public class MeetingService {
                 userId,
                 request.getTitle(),
                 request.getDescription(),
-                inviteCode
+                inviteCode,
+                request.getCategory()
         );
         Meeting savedMeeting = meetingRepository.save(meeting);
 

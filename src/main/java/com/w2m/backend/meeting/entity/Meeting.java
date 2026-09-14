@@ -35,6 +35,11 @@ public class Meeting {
     @Column(nullable = false ,length = 100)
     private String title;
 
+    //장소 추천 검색에 쓸 카테고리 (null 이면 "상관없음"으로 처리)
+    @Enumerated(EnumType.STRING)
+    @Column(length =  30)
+    private PlaceCategory category;
+
     //모임 설명
     @Column(length = 500)
     private String description;
@@ -56,16 +61,20 @@ public class Meeting {
     @Column(name = "confirmed_end_date_time")
     private LocalDateTime confirmedEndDateTime;
 
+
+
     //모임 생성자
     public Meeting(
             Long hostUserId,
             String title,
             String description,
-            String inviteCode) {
+            String inviteCode,
+            PlaceCategory category) {
         this.hostUserId = hostUserId;
         this.title = title;
         this.description = description;
         this.inviteCode = inviteCode;
+        this.category = category;
         this.status = MeetingStatus.WAITING_PARTICIPANTS;
     }
 
@@ -88,4 +97,10 @@ public class Meeting {
         VOTING, // 투표 중
         CONFIRMED // 최종 확정
     }
+    public enum PlaceCategory {
+        MEAL,
+        CAFE,
+        ANY
+    }
 }
+    

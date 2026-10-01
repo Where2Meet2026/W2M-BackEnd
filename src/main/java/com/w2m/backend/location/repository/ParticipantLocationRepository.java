@@ -13,7 +13,7 @@ public interface ParticipantLocationRepository extends JpaRepository<Participant
     Optional<ParticipantLocation> findByParticipant(Participant participant);
 
     @Query("SELECT pl FROM ParticipantLocation pl WHERE pl.participant.meeting.id = :meetingId")
-    List<ParticipantLocation> findAllByMeetingId(@Param("meetingId") Long meetingId);
+    List<ParticipantLocation> findAllByMeetingId(@Param("meetingId") Long meetingId); //모든 참여자위치 가져옴
 
     boolean existsByParticipantId(Long participantId);
 }

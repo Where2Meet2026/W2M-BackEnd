@@ -56,6 +56,10 @@ dependencies {
     runtimeOnly 'io.jsonwebtoken:jjwt-jackson:0.11.5'
     //oAuth
     implementation 'org.springframework.boot:spring-boot-starter-oauth2-client'
+    //Web Push (VAPID) — 알림 발송
+    implementation 'nl.martijndwars:web-push:5.1.1'
+    // web-push 5.1.1 POM이 BouncyCastle 선언을 누락함 (런타임에 필요) — 명시적으로 추가
+    implementation 'org.bouncycastle:bcprov-jdk18on:1.78.1'
 }
 
 tasks.named('test') {

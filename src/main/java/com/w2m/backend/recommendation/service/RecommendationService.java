@@ -89,4 +89,12 @@ public class RecommendationService {
                 .recommendedSlots(recommendedSlots)
                 .build();
     }
+    @Transactional(readOnly = true) // DB를 조회만 하는 메서라는 표시
+    public boolean isRecommendationReady (Long meetingId) {
+        List<Participant> participants = participantRepository.findByMeetingId(meetingId);
+            long completeCount = participants.stream()
+                            .filter(p-> !availabilityRepository.findByParticipant(p).isEmpty()).
+                    count();
+            return completeCount == participants.size();
+    }
 }

@@ -1,5 +1,6 @@
 package com.w2m.backend.meeting.entity;
 
+import com.w2m.backend.candidate.entity.PlaceCandidate;
 import com.w2m.backend.participant.entity.Participant;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -35,6 +36,11 @@ public class Meeting {
     @Column(nullable = false ,length = 100)
     private String title;
 
+    //장소 추천 검색에 쓸 카테고리 (null 이면 "상관없음"으로 처리)
+    @Enumerated(EnumType.STRING)
+    @Column(length =  30)
+    private PlaceCategory category;
+
     //모임 설명
     @Column(length = 500)
     private String description;
@@ -61,11 +67,13 @@ public class Meeting {
             Long hostUserId,
             String title,
             String description,
-            String inviteCode) {
+            String inviteCode,
+            PlaceCategory category) {
         this.hostUserId = hostUserId;
         this.title = title;
         this.description = description;
         this.inviteCode = inviteCode;
+        this.category = category;
         this.status = MeetingStatus.WAITING_PARTICIPANTS;
     }
 
@@ -78,6 +86,18 @@ public class Meeting {
         this.confirmedEndDateTime = endDateTime;
         this.status = MeetingStatus.COLLECTING_LOCATION;
     }
+
+    //투표로 최종 확정된 장소 후보 (확정 전에는 null)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "confirmed_candidate_id")
+    private PlaceCandidate confirmedCandidate;
+
+    // 투표 집계 결과 최종 확정될 때 호출 — 확정 후보 기록 + 상태를 CONFIRMED로 바꿔서 이후 투표를 막음
+    public void confirmVote(PlaceCandidate candidate) {
+        this.confirmedCandidate = candidate;
+        this.status = MeetingStatus.CONFIRMED;
+    }
+
     public enum MeetingStatus {
         WAITING_PARTICIPANTS, //참여자 모집 중
         COLLECTING_TIME, // 시간 입력 중
@@ -88,4 +108,10 @@ public class Meeting {
         VOTING, // 투표 중
         CONFIRMED // 최종 확정
     }
+    public enum PlaceCategory {
+        MEAL,
+        CAFE,
+        ANY
+    }
 }
+    

@@ -20,4 +20,8 @@ public class RecommendationController {
     public ResponseEntity<RecommendationResponseDto> getRecommendations(@PathVariable Long meetingId) {
         return ResponseEntity.ok(recommendationService.getRecommendations(meetingId));
     }
+    @GetMapping("/status")
+    public ResponseEntity<Boolean> getRecommendationStatus(@PathVariable Long meetingId) {
+        return ResponseEntity.ok(recommendationService.isRecommendationReady(meetingId));
+    }
 }

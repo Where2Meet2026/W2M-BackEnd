@@ -20,7 +20,13 @@ public class ParticipantResponse {
     @JsonProperty("isTimeSelected")
     private boolean isTimeSelected;
 
-    public static ParticipantResponse from(Participant participant) {
+    @JsonProperty("isLocationSelected")
+    private boolean isLocationSelected;
+
+    @JsonProperty("isVoted")
+    private boolean isVoted;
+
+    public static ParticipantResponse from(Participant participant, boolean isVoted) {
         return ParticipantResponse.builder()
                 .participantId(participant.getId())
                 .meetingId(participant.getMeeting().getId())
@@ -29,6 +35,8 @@ public class ParticipantResponse {
                 .role(participant.getRole().name())
                 .joinedAt(participant.getJoinedAt())
                 .isTimeSelected(participant.isTimeSelected())
+                .isLocationSelected(participant.isLocationSelected())
+                .isVoted(isVoted)
                 .build();
     }
 }

@@ -13,6 +13,7 @@ import com.w2m.backend.meeting.entity.Meeting;
 import com.w2m.backend.meeting.repository.MeetingRepository;
 import com.w2m.backend.participant.entity.Participant;
 import com.w2m.backend.participant.repository.ParticipantRepository;
+import com.w2m.backend.vote.repository.VoteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import com.w2m.backend.candidate.dto.response.KakaoLocalSearchResponse.KakaoPlaceDto;
@@ -30,6 +31,7 @@ public class PlaceCandidateService {
     private final MeetingRepository meetingRepository;
     private final KakaoLocalApiClient kakaoLocalApiClient;
     private final CandidateReactionRepository candidateReactionRepository;
+    private final VoteRepository voteRepository;
 
     private static final int SEARCH_RADIUS_METERS = 1500;
     private final ParticipantRepository participantRepository;
@@ -225,9 +227,11 @@ public class PlaceCandidateService {
                 .min(Comparator.comparingDouble(CandidateScore::avgDistance))
                 .orElseThrow(()-> new IllegalStateException("교체할 후보를 찾을 수 없습니다"));
 
-        /* 재교체 순서: 반응부터 지우고(deleteByCandidate) → 후보 지우고(delete) → 새 후보 저장(save).
-        순서가 중요함 — 반응을 먼저 안 지우면 후보를 못 지움 (외래키 때문, CandidateReaction이 candidate_id로 참조하고 있음).*/
+        /* 재교체 순서: 반응(deleteByCandidate)·투표(deleteByCandidateId) 먼저 지우고 → 후보 지우고(delete) → 새 후보 저장(save).
+        순서가 중요함 — CandidateReaction, Vote가 둘 다 candidate_id로 이 후보를 참조하고 있어서,
+        먼저 안 지우면 외래키 때문에 후보를 못 지움.*/
         candidateReactionRepository.deleteByCandidate(oldCandidate);
+        voteRepository.deleteByCandidateId(oldCandidate.getId());
         placeCandidateRepository.delete(oldCandidate);
         placeCandidateRepository.save(toEntity(meeting, replacement, oldCandidate.getType()));
     }

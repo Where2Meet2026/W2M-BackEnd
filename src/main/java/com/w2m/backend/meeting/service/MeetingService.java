@@ -4,6 +4,7 @@ package com.w2m.backend.meeting.service;
 import com.w2m.backend.meeting.dto.request.ConfirmMeetingTimeRequest;
 import com.w2m.backend.meeting.dto.request.CreateMeetingRequest;
 import com.w2m.backend.meeting.dto.request.UpdateMeetingStatusRequest;
+import com.w2m.backend.meeting.dto.response.FinalSelectionResponse;
 import com.w2m.backend.meeting.dto.response.MeetingResponse;
 import com.w2m.backend.meeting.entity.Meeting;
 import com.w2m.backend.meeting.event.MeetingTimeConfirmedEvent;
@@ -134,5 +135,17 @@ public class MeetingService {
 
         // 위에서 이미 방장인지 확인했으므로 role은 항상 HOST
         return MeetingResponse.from(meeting, "HOST");
+    }
+    @Transactional(readOnly = true)
+    public FinalSelectionResponse getFinalSelection(Long meetingId, Long userId) {
+        Meeting meeting = meetingRepository.findById(meetingId)
+                        .orElseThrow(() -> new IllegalArgumentException("모임이 존재하지 않습니다."));
+        if(!participantRepository.existsByMeetingIdAndUserId( meetingId, userId)){
+            throw new IllegalArgumentException("이 모임의 참여자가 아닙니다.");
+        }
+        if (meeting.getConfirmedCandidate() == null) {
+            throw new IllegalStateException("아직 확정되지 않았습니다.");
+        }
+        return FinalSelectionResponse.from(meeting);
     }
 }

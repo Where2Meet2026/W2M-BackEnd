@@ -4,6 +4,7 @@ import com.w2m.backend.auth.jwt.CustomUserDetails;
 import com.w2m.backend.meeting.dto.request.ConfirmMeetingTimeRequest;
 import com.w2m.backend.meeting.dto.request.CreateMeetingRequest;
 import com.w2m.backend.meeting.dto.request.UpdateMeetingStatusRequest;
+import com.w2m.backend.meeting.dto.response.FinalSelectionResponse;
 import com.w2m.backend.meeting.dto.response.MeetingResponse;
 import com.w2m.backend.meeting.service.MeetingService;
 import lombok.RequiredArgsConstructor;
@@ -74,5 +75,12 @@ public class MeetingController {
         Long userId = userDetails.getUser().getId();
         return meetingService.confirmMeetingTime(meetingId, request, userId);
     }
-
+    @GetMapping("/{meetingId}/final-selection")
+    public FinalSelectionResponse getFinalSelection(
+            @PathVariable Long meetingId,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        Long userId = userDetails.getUser().getId();
+        return meetingService.getFinalSelection(meetingId, userId);
+    }
 }

@@ -1,6 +1,9 @@
 package com.w2m.backend.meeting.service;
 
 
+import com.w2m.backend.candidate.entity.CandidateReaction;
+import com.w2m.backend.candidate.repository.CandidateReactionRepository;
+import com.w2m.backend.candidate.repository.PlaceCandidateRepository;
 import com.w2m.backend.meeting.dto.request.ConfirmMeetingTimeRequest;
 import com.w2m.backend.meeting.dto.request.CreateMeetingRequest;
 import com.w2m.backend.meeting.dto.request.UpdateMeetingStatusRequest;
@@ -11,6 +14,7 @@ import com.w2m.backend.meeting.event.MeetingTimeConfirmedEvent;
 import com.w2m.backend.meeting.repository.MeetingRepository;
 import com.w2m.backend.participant.entity.Participant;
 import com.w2m.backend.participant.repository.ParticipantRepository;
+import com.w2m.backend.vote.repository.VoteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
@@ -27,6 +31,9 @@ public class MeetingService {
     private final com.w2m.backend.auth.repository.UserRepository userRepository;
     private final com.w2m.backend.availability.repository.AvailabilityRepository availabilityRepository;
     private final ApplicationEventPublisher eventPublisher;
+    private final VoteRepository voteRepository;
+    private final CandidateReactionRepository candidateReactionRepository;
+    private final PlaceCandidateRepository placeCandidateRepository;
 
     public MeetingResponse createMeeting(
             CreateMeetingRequest request, Long userId) {
@@ -105,8 +112,15 @@ public class MeetingService {
             throw new IllegalArgumentException("방장만 모임을 삭제할 수 있습니다.");
         }
         
-        // CascadeType.ALL 설정으로 인해 meeting 삭제 시 
-        // 하위 participants와 그 하위 availabilities가 모두 자동 삭제됩니다.
+        // votes/candidate_reactions/place_candidates는 Participant와 달리 cascade가 안 걸려있어서,
+        // 그대로 두고 meeting을 지우면 FK 위반이 남. 그래서 순서대로 먼저 직접 지워줌
+        // (votes, candidate_reactions가 candidate_id를 참조하므로 place_candidates보다 먼저 지워야 함)
+        voteRepository.deleteByMeetingId(meetingId);
+        candidateReactionRepository.deleteByCandidate_Meeting_Id(meetingId);
+        placeCandidateRepository.deleteByMeetingId(meetingId);
+
+        // CascadeType.ALL 설정으로 인해 meeting 삭제 시
+        // 하위 participants와 그 하위 availabilities/locations가 모두 자동 삭제됩니다.
         meetingRepository.delete(meeting);
     }
     public MeetingResponse getMeetingByInviteCode(String inviteCode){

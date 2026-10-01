@@ -16,4 +16,6 @@ public interface CandidateReactionRepository extends JpaRepository<CandidateReac
   Participant participant); // 이 후보에 이 참여자가 남긴 반응이 있는 찾음
 
     void deleteByCandidate(PlaceCandidate candidate);
+    void deleteByCandidate_Meeting_Id(Long meetingId);
+    void deleteByParticipantId(Long participantId);
 }

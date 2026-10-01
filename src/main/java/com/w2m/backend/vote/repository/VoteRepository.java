@@ -13,4 +13,7 @@ public interface VoteRepository extends JpaRepository<Vote, Long> {
 
     long countByMeetingId(Long meetingId); // 이 모임에서 지금까지 몇 명 투표했는지 확인용
     List<Vote> findByMeetingId(Long meetingId);
+    void deleteByMeetingId(Long meetingId);
+    void deleteByParticipantId(Long participantId);
+    void deleteByCandidateId(Long candidateId);
 }

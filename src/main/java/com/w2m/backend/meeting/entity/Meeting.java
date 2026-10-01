@@ -1,5 +1,6 @@
 package com.w2m.backend.meeting.entity;
 
+import com.w2m.backend.candidate.entity.PlaceCandidate;
 import com.w2m.backend.participant.entity.Participant;
 import jakarta.persistence.*;
 import lombok.AllArgsConstructor;
@@ -61,8 +62,6 @@ public class Meeting {
     @Column(name = "confirmed_end_date_time")
     private LocalDateTime confirmedEndDateTime;
 
-
-
     //모임 생성자
     public Meeting(
             Long hostUserId,
@@ -87,6 +86,18 @@ public class Meeting {
         this.confirmedEndDateTime = endDateTime;
         this.status = MeetingStatus.COLLECTING_LOCATION;
     }
+
+    //투표로 최종 확정된 장소 후보 (확정 전에는 null)
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "confirmed_candidate_id")
+    private PlaceCandidate confirmedCandidate;
+
+    // 투표 집계 결과 최종 확정될 때 호출 — 확정 후보 기록 + 상태를 CONFIRMED로 바꿔서 이후 투표를 막음
+    public void confirmVote(PlaceCandidate candidate) {
+        this.confirmedCandidate = candidate;
+        this.status = MeetingStatus.CONFIRMED;
+    }
+
     public enum MeetingStatus {
         WAITING_PARTICIPANTS, //참여자 모집 중
         COLLECTING_TIME, // 시간 입력 중

@@ -16,7 +16,7 @@ public class CandidateResponse {
     private PlaceCandidate.CandidateType type;
     private Double avgDistanceMeters;
     private String description;
-    private Long likeCount;
+    private long likeCount;
     private long dislikeCount;
     private CandidateReaction.ReactionType myReaction; // 반응 없으면 null
 

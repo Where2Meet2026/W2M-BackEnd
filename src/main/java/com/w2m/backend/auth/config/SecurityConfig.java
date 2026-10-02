@@ -24,7 +24,7 @@ public class SecurityConfig {
     private final UserService userService;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
-    @Value("${SecretKey}")
+    @Value("${JWT_SECRET_KEY}")
     private String secretKey;
     private final RedisTemplate<String, Object> redisTemplate;
 @Bean

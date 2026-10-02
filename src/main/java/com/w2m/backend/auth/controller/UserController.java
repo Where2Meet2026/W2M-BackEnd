@@ -25,7 +25,7 @@ public class UserController {
     private final VerificationService verificationService;
 
 
-    @Value("${SecretKey}")
+    @Value("${JWT_SECRET_KEY}")
     private String secretKey;
 
     @PostMapping("/signup")

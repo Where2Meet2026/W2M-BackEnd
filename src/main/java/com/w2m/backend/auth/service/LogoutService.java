@@ -14,7 +14,7 @@ public class LogoutService {
 
     private final RedisTemplate<String, Object> redisTemplate;
 
-    @Value("${SecretKey}")
+    @Value("${JWT_SECRET_KEY}")
     private String secretKey;
 
     public void logout(String accessToken) {

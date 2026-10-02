@@ -33,7 +33,7 @@ public class JwtTokenUtil {
         return expiredDate.before(new Date());
     }
 
-    // SecretKey를 사용해 Token Parsing
+    // JWT_SECRET_KEY 를 사용해 Token Parsing
     private static Claims extractClaims(String token, String secretKey) {
         return Jwts.parser().setSigningKey(secretKey).parseClaimsJws(token).getBody();
     }

@@ -19,7 +19,7 @@ import java.io.IOException;
 @RequiredArgsConstructor
 public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler {
 
-    @Value("${SecretKey}")
+    @Value("${JWT_SECRET_KEY}")
     private String secretKey;
 
     @Override

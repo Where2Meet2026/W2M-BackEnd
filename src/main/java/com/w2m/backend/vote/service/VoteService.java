@@ -49,6 +49,10 @@ public class VoteService {
         // 3. 투표하려는 후보가 실제로 존재하는 후보인지 확인
         PlaceCandidate candidate = placeCandidateRepository.findById(candidateId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 후보입니다."));
+        // 3-1.그 후보가 정말 이 모임의 후보인지 확인( 다른 모임 id로 투표하는 것 막기)
+        if(!candidate.getMeeting().getId().equals(meeting.getId())) {
+            throw new IllegalArgumentException("이 모임의 후보가 아닙니다.");
+        }
 
         // 4. 이 참여자가 이 모임에서 이미 투표한 적 있으면 후보만 바꾸고(변경), 처음이면 새로 저장
         Optional<Vote> existingVote = voteRepository.findByMeetingIdAndParticipantId(meetingId, participant.getId());

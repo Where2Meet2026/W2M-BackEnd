@@ -18,7 +18,7 @@ import java.util.List;
 import java.util.concurrent.CountDownLatch;
 
 import static org.assertj.core.api.Assertions.assertThat;
-
+import static org.assertj.core.api.Assertions.assertThatThrownBy;
 @SpringBootTest
 public class VoteServiceTest {
 
@@ -129,5 +129,33 @@ public class VoteServiceTest {
 
         Meeting confirmedMeeting = meetingRepository.findById(meeting.getId()).orElseThrow();
         assertThat(confirmedMeeting.getStatus()).isEqualTo(Meeting.MeetingStatus.CONFIRMED);
+    }
+    @Test
+    void 다른모임의_후보로_투표하면_거절된다() {
+        User userA = userRepository.findById(14L).orElseThrow();
+        User userB = userRepository.findById(15L).orElseThrow();
+
+        // 1. A가 참여한 모임 (내 모임)
+        Meeting myMeeting = meetingRepository.save(
+                new Meeting(userA.getId(), "내 모임", "다른 모임 후보 투표 테스트",
+                        "MINE" + System.currentTimeMillis() % 100000, Meeting.PlaceCategory.CAFE));
+        participantRepository.save(
+                new Participant(myMeeting, userA, Participant.ParticipantRole.HOST));
+
+        // 2. A와 상관없는 모임과, 그 모임의 후보
+        Meeting otherMeeting = meetingRepository.save(
+                new Meeting(userB.getId(), "남의 모임", "다른 모임 후보 투표 테스트",
+                        "OTHR" + System.currentTimeMillis() % 100000, Meeting.PlaceCategory.CAFE));
+        PlaceCandidate otherCandidate = placeCandidateRepository.save(PlaceCandidate.builder()
+                .meeting(otherMeeting).kakaoPlaceId("other1").placeName("남의모임카페")
+                .address("서울").latitude(37.5).longitude(127.0)
+                .type(PlaceCandidate.CandidateType.FASTEST)
+                .avgDistanceMeters(100.0).maxDistanceMeters(100.0).build());
+
+        // 3. A가 내 모임에서 남의 모임 후보로 투표하면 → 거절돼야 함
+        assertThatThrownBy(() ->
+                voteService.castVote(myMeeting.getId(), otherCandidate.getId(), userA.getId()))
+                .isInstanceOf(IllegalArgumentException.class)
+                .hasMessage("이 모임의 후보가 아닙니다.");
     }
 }

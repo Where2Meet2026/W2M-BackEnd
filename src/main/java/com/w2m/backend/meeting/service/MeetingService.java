@@ -158,6 +158,11 @@ public class MeetingService {
             throw new IllegalArgumentException("방장만 약속 시간을 확정할 수 있습니다.");
         }
 
+        // 투표로 장소까지 최종 확정된 뒤에 시간을 다시 확정하면 상태가 되돌아가므로 막는다.
+        if (meeting.getStatus() == Meeting.MeetingStatus.CONFIRMED) {
+            throw new IllegalStateException("이미 최종 확정된 모임입니다.");
+        }
+
         meeting.confirmTime(request.getStartDateTime(), request.getEndDateTime());
 
         // 커밋 후 참여자 전원에게 시간 확정 알림 발송 (NotificationEventListener)

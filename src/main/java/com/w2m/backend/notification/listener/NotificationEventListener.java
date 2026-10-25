@@ -40,7 +40,7 @@ public class NotificationEventListener {
             return;
         }
 
-        String url = webBaseUrl + "/meetings/" + event.meetingId();
+        String url = webBaseUrl + "/location/" + event.meetingId();
         List<String> expiredEndpoints = new ArrayList<>();
 
         for (PushTarget target : targets) {

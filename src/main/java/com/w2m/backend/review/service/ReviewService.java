@@ -11,8 +11,10 @@ import com.w2m.backend.review.dto.request.CreateReviewRequest;
 import com.w2m.backend.review.dto.response.PlaceReviewsResponse;
 import com.w2m.backend.review.dto.response.ReviewResponse;
 import com.w2m.backend.review.entity.Review;
+import com.w2m.backend.review.event.ReviewCreatedEvent;
 import com.w2m.backend.review.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -28,6 +30,7 @@ public class ReviewService {
     private final ParticipantRepository participantRepository;
     private final UserRepository userRepository;
     private final PlaceCandidateRepository placeCandidateRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     @Transactional
     public Long createReview(Long meetingId, CreateReviewRequest request, Long userId) {
@@ -62,12 +65,17 @@ public class ReviewService {
                 .comment(request.getComment())
                 .build();
 
+        Long reviewId;
         try {
             // 동시에 두 번 요청되면 위의 exists 검사를 둘 다 통과할 수 있어서, 유니크 제약 위반도 같은 오류로 처리한다.
-            return reviewRepository.saveAndFlush(review).getId();
+            reviewId = reviewRepository.saveAndFlush(review).getId();
         } catch (DataIntegrityViolationException e) {
             throw new IllegalStateException("이미 이 장소에 리뷰를 작성했습니다.");
         }
+
+        // 커밋 후 백그라운드에서 이 장소의 설명 문구를 다시 만든다 (rag 패키지의 리스너가 처리).
+        eventPublisher.publishEvent(new ReviewCreatedEvent(review.getPlaceId(), review.getPlaceName()));
+        return reviewId;
     }
 
     @Transactional(readOnly = true)

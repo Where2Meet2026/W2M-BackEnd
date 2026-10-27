@@ -12,6 +12,7 @@ import com.w2m.backend.review.dto.request.CreateReviewRequest;
 import com.w2m.backend.review.dto.response.PlaceReviewsResponse;
 import com.w2m.backend.review.dto.response.ReviewResponse;
 import com.w2m.backend.review.entity.Review;
+import com.w2m.backend.review.event.ReviewCreatedEvent;
 import com.w2m.backend.review.repository.ReviewRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -19,6 +20,8 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
@@ -40,6 +43,7 @@ class ReviewServiceTest {
     @Mock private ParticipantRepository participantRepository;
     @Mock private UserRepository userRepository;
     @Mock private PlaceCandidateRepository placeCandidateRepository;
+    @Mock private ApplicationEventPublisher eventPublisher;
 
     @InjectMocks
     private ReviewService reviewService;
@@ -106,6 +110,12 @@ class ReviewServiceTest {
         assertThat(saved.getRating()).isEqualTo(5);
         assertThat(saved.getComment()).isEqualTo("조용하고 좋았어요");
         assertThat(saved.getUser()).isEqualTo(user);
+
+        // 저장 후 설명 재생성을 위한 이벤트가 장소 정보와 함께 발행된다.
+        ArgumentCaptor<ReviewCreatedEvent> eventCaptor = ArgumentCaptor.forClass(ReviewCreatedEvent.class);
+        verify(eventPublisher).publishEvent(eventCaptor.capture());
+        assertThat(eventCaptor.getValue().placeId()).isEqualTo("kakao-1");
+        assertThat(eventCaptor.getValue().placeName()).isEqualTo("감성 루프탑 카페");
     }
 
     @Test
@@ -163,6 +173,24 @@ class ReviewServiceTest {
 
         verify(reviewRepository, never()).saveAndFlush(any());
         verify(userRepository, never()).findById(anyLong());
+    }
+
+    @Test
+    void 동시_요청으로_유니크_제약에_걸리면_예외이고_이벤트는_발행되지_않는다() {
+        PlaceCandidate candidate = confirmedCandidate();
+        Meeting meeting = meetingWithStatus(Meeting.MeetingStatus.CONFIRMED, candidate);
+        when(meetingRepository.findById(MEETING_ID)).thenReturn(Optional.of(meeting));
+        when(participantRepository.existsByMeetingIdAndUserId(MEETING_ID, USER_ID)).thenReturn(true);
+        when(reviewRepository.existsByPlaceIdAndUserId("kakao-1", USER_ID)).thenReturn(false);
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user()));
+        when(reviewRepository.saveAndFlush(any(Review.class))).thenThrow(new DataIntegrityViolationException("duplicate"));
+
+        assertThatThrownBy(() ->
+                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5, "좋아요"), USER_ID))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("이미 이 장소에 리뷰를 작성했습니다.");
+
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
 
     @Test

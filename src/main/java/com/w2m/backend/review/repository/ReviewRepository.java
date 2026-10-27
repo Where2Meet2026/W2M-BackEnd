@@ -1,7 +1,10 @@
 package com.w2m.backend.review.repository;
 
 import com.w2m.backend.review.entity.Review;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 import java.util.List;
 
@@ -18,4 +21,16 @@ public interface ReviewRepository extends JpaRepository<Review, Long> {
 
     // 내가 작성한 리뷰 목록 (내 방 목록의 reviewed 계산에 사용)
     List<Review> findByUserId(Long userId);
+
+    // --- LLM 설명 생성용: 코멘트가 실제로 있는 리뷰만 대상으로 한다 ---
+
+    @Query("select count(r) from Review r where r.placeId = :placeId and r.comment is not null and trim(r.comment) <> ''")
+    long countUsableByPlaceId(@Param("placeId") String placeId);
+
+    @Query("select avg(r.rating) from Review r where r.placeId = :placeId")
+    Double averageRatingByPlaceId(@Param("placeId") String placeId);
+
+    // 최신순으로 pageable 크기만큼의 코멘트
+    @Query("select r.comment from Review r where r.placeId = :placeId and r.comment is not null and trim(r.comment) <> '' order by r.createdAt desc")
+    List<String> findUsableComments(@Param("placeId") String placeId, Pageable pageable);
 }

@@ -24,12 +24,11 @@ public class SecurityConfig {
     private final UserService userService;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
-    // 쉼표로 여러 개 지정 가능. 시연 기기/배포 주소로 접속할 때 환경변수 FRONTEND_ORIGINS로 바꾼다.
-    @Value("${FRONTEND_ORIGINS:http://localhost:5173}")
-    private String[] frontendOrigins;
-
+    
     @Value("${JWT_SECRET_KEY}")
     private String secretKey;
+    @Value("${app.cors-allowed-origins}")
+    private String corsAllowedOrigins;
     private final RedisTemplate<String, Object> redisTemplate;
 @Bean
 public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
@@ -80,8 +79,10 @@ public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws
 @Bean
 public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
     org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
-    for (String origin : frontendOrigins) {
-        configuration.addAllowedOrigin(origin.trim()); // 프론트엔드 주소
+
+    // 쉼표로 구분된 주소들을 하나씩 허용 (배포된 프론트 + 로컬 개발 주소)
+    for (String origin : corsAllowedOrigins.split(",")) {
+        configuration.addAllowedOrigin(origin.trim());
     }
     configuration.addAllowedMethod("*");
     configuration.addAllowedHeader("*");

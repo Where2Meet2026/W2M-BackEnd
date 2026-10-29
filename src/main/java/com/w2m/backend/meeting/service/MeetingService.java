@@ -14,6 +14,8 @@ import com.w2m.backend.meeting.event.MeetingTimeConfirmedEvent;
 import com.w2m.backend.meeting.repository.MeetingRepository;
 import com.w2m.backend.participant.entity.Participant;
 import com.w2m.backend.participant.repository.ParticipantRepository;
+import com.w2m.backend.review.entity.Review;
+import com.w2m.backend.review.repository.ReviewRepository;
 import com.w2m.backend.vote.repository.VoteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.ApplicationEventPublisher;
@@ -22,7 +24,9 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 @Service
 @RequiredArgsConstructor
 public class MeetingService {
@@ -34,6 +38,7 @@ public class MeetingService {
     private final VoteRepository voteRepository;
     private final CandidateReactionRepository candidateReactionRepository;
     private final PlaceCandidateRepository placeCandidateRepository;
+    private final ReviewRepository reviewRepository;
 
     public MeetingResponse createMeeting(
             CreateMeetingRequest request, Long userId) {
@@ -75,10 +80,14 @@ public class MeetingService {
 
     public List<MeetingResponse> getMyMeetings(Long userId) {
         List<MeetingResponse> result = new ArrayList<>();
+        // 내가 리뷰를 쓴 장소 id (모임마다 조회하지 않도록 한 번만 가져온다)
+        Set<String> reviewedPlaceIds = reviewRepository.findByUserId(userId).stream()
+                .map(Review::getPlaceId)
+                .collect(Collectors.toSet());
         // 내가 방장인 방 조회
         List<Meeting> hostMeetings = meetingRepository.findByHostUserId(userId);
         for (Meeting meeting : hostMeetings) {
-            result.add(MeetingResponse.from(meeting, "HOST"));
+            result.add(MeetingResponse.from(meeting, "HOST", hasReviewed(meeting, reviewedPlaceIds)));
         }
         // 내가 참여한 방 조회
         List<Participant> participants = participantRepository.findByUserId(userId);
@@ -87,11 +96,18 @@ public class MeetingService {
             boolean alreadyAddedAsHost = hostMeetings.stream()
                     .anyMatch(hostMeeting -> hostMeeting.getId().equals(meeting.getId()));
             if (!alreadyAddedAsHost) {
-                result.add(MeetingResponse.from(meeting, "PARTICIPANT"));
+                result.add(MeetingResponse.from(meeting, "PARTICIPANT", hasReviewed(meeting, reviewedPlaceIds)));
             }
         }
         return result;
 
+    }
+
+    // 리뷰 중복 방지 규칙(장소+사용자 기준)과 같은 기준으로, 확정 장소에 이미 리뷰를 썼는지 판단한다.
+    private boolean hasReviewed(Meeting meeting, Set<String> reviewedPlaceIds) {
+        return meeting.getStatus() == Meeting.MeetingStatus.CONFIRMED
+                && meeting.getConfirmedCandidate() != null
+                && reviewedPlaceIds.contains(meeting.getConfirmedCandidate().getKakaoPlaceId());
     }
     public MeetingResponse updateMeetingStatus(Long meetingId, UpdateMeetingStatusRequest request, Long userId){
 
@@ -140,6 +156,11 @@ public class MeetingService {
 
         if (!meeting.getHostUserId().equals(userId)) {
             throw new IllegalArgumentException("방장만 약속 시간을 확정할 수 있습니다.");
+        }
+
+        // 투표로 장소까지 최종 확정된 뒤에 시간을 다시 확정하면 상태가 되돌아가므로 막는다.
+        if (meeting.getStatus() == Meeting.MeetingStatus.CONFIRMED) {
+            throw new IllegalStateException("이미 최종 확정된 모임입니다.");
         }
 
         meeting.confirmTime(request.getStartDateTime(), request.getEndDateTime());

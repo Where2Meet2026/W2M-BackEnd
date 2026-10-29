@@ -44,7 +44,7 @@ public class RecommendationService {
             }
         }
 
-        List<AvailableSlotDto> recommendedSlots = slotMap.entrySet().stream()
+        List<AvailableSlotDto> windows = slotMap.entrySet().stream()
                 .map(entry -> {
                     LocalDateTime start = entry.getKey();
                     List<String> currentParticipants = entry.getValue();
@@ -67,6 +67,23 @@ public class RecommendationService {
                             .availableCount(currentParticipants.size())
                             .participantNames(currentParticipants)
                             .build();
+                })
+                .collect(Collectors.toList());
+
+        // 같은 구간의 뒷부분 조각(예: 10~13시가 있는데 11~13시, 12~13시)은 추천에서 뺀다.
+        // 바로 앞 시간대 구간이 같은(또는 더 많은) 참여자로 같은 시각까지 이어지면 그 구간에 완전히 포함된다.
+        Map<LocalDateTime, AvailableSlotDto> windowByStart = new HashMap<>();
+        windows.forEach(w -> windowByStart.put(w.getStartDateTime(), w));
+
+        List<AvailableSlotDto> recommendedSlots = windows.stream()
+                .filter(w -> {
+                    AvailableSlotDto prev = windowByStart.get(w.getStartDateTime().minusHours(1));
+                    if (prev == null) {
+                        return true;
+                    }
+                    boolean prevCoversEnd = !prev.getEndDateTime().isBefore(w.getEndDateTime());
+                    boolean prevHasEveryone = new HashSet<>(prev.getParticipantNames()).containsAll(w.getParticipantNames());
+                    return !(prevCoversEnd && prevHasEveryone);
                 })
                 // 정렬: 1. 참여자 수(역순) 2. 지속 시간(역순) 3. 시작 시간(정순)
                 .sorted((a, b) -> {

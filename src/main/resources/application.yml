@@ -57,7 +57,23 @@ notification:
     public-key: ${VAPID_PUBLIC_KEY:}
     private-key: ${VAPID_PRIVATE_KEY:}
   # 알림 클릭 시 이동할 프론트엔드 베이스 URL
-  web-base-url: ${NOTIFICATION_WEB_BASE_URL:http://localhost:5173}
+  web-base-url: ${app.frontend-url}
+
+# 리뷰 기반 후보 장소 설명 생성 (Gemini)
+description-ai:
+  # false이거나 api-key가 비어 있으면 LLM을 호출하지 않고 기본 문구만 사용한다.
+  enabled: ${DESCRIPTION_AI_ENABLED:true}
+  # Google AI Studio에서 발급한 키. application-local.yml 또는 환경변수 GEMINI_API_KEY에 넣는다.
+  api-key: ${GEMINI_API_KEY:}
+  model: ${DESCRIPTION_AI_MODEL:gemini-3.5-flash-lite}
+  base-url: https://generativelanguage.googleapis.com/v1beta
+  timeout-ms: 5000
+  # 이 개수 이상의 코멘트가 쌓인 장소부터 LLM 설명을 만든다.
+  min-reviews: 5
+  # 프롬프트에 넣는 최신 코멘트 최대 개수 / 코멘트당 최대 글자 수
+  max-reviews: 20
+  max-comment-chars: 200
+  max-output-tokens: 1024
 
 logging:
   level:
@@ -68,3 +84,11 @@ springdoc:
   swagger-ui:
     persist-authorization: true
 #    Swagger 화면에서 Authorize에 입력한 인증 정보(토큰)를 브라우저에 저장해서 계속 유지
+
+app:
+  # 프론트엔드 주소: 카카오 로그인 후 이동, 알림 클릭 시 이동에 사용
+  # 배포 서버에서는 FRONTEND_URL에 배포된 프론트 주소를 넣음
+  frontend-url: ${FRONTEND_URL:http://localhost:5173}
+  # API 요청을 허용할 프론트 주소 목록 (쉼표로 구분)
+  # 배포 서버에서는 "배포 주소,http://localhost:5173" (로컬 개발도 배포 서버를 쓰니까)
+  cors-allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}

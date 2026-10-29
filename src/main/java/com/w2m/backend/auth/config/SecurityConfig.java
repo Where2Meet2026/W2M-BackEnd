@@ -26,6 +26,8 @@ public class SecurityConfig {
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
     @Value("${JWT_SECRET_KEY}")
     private String secretKey;
+    @Value("${app.cors-allowed-origins}")
+    private String corsAllowedOrigins;
     private final RedisTemplate<String, Object> redisTemplate;
 @Bean
 public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws Exception {
@@ -75,7 +77,10 @@ public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws
 @Bean
 public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
     org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
-    configuration.addAllowedOrigin("http://localhost:5173"); // 프론트엔드 주소
+    // 쉼표로 구분된 주소들을 하나씩 허용 (배포된 프론트 + 로컬 개발 주소)
+    for (String origin : corsAllowedOrigins.split(",")) {
+        configuration.addAllowedOrigin(origin.trim());
+    }
     configuration.addAllowedMethod("*");
     configuration.addAllowedHeader("*");
     configuration.setAllowCredentials(true);

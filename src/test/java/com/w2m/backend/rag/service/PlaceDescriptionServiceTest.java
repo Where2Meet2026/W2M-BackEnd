@@ -192,4 +192,23 @@ class PlaceDescriptionServiceTest {
         assertThat(captor.getValue().getDescription()).isEqualTo("첫 설명");
         assertThat(captor.getValue().getReviewCount()).isEqualTo(5);
     }
+
+    @Test
+    void 캐시_조회는_저장된_장소의_설명만_맵으로_돌려주고_LLM을_부르지_않는다() {
+        when(placeDescriptionRepository.findByPlaceIdIn(List.of("a", "b")))
+                .thenReturn(List.of(PlaceDescription.builder().placeId("a").description("A 설명").reviewCount(5).build()));
+
+        assertThat(service.findCached(List.of("a", "b"))).containsOnly(java.util.Map.entry("a", "A 설명"));
+
+        verify(descriptionGenerator, never()).generate(anyString(), anyDouble(), anyInt(), anyList());
+        verify(reviewRepository, never()).countUsableByPlaceId(anyString());
+    }
+
+    @Test
+    void 캐시_조회에_장소가_없으면_저장소를_부르지_않고_빈_맵이다() {
+        assertThat(service.findCached(List.of())).isEmpty();
+        assertThat(service.findCached(null)).isEmpty();
+
+        verify(placeDescriptionRepository, never()).findByPlaceIdIn(any());
+    }
 }

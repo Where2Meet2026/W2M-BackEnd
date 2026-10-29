@@ -13,6 +13,8 @@ import com.w2m.backend.meeting.entity.Meeting;
 import com.w2m.backend.meeting.repository.MeetingRepository;
 import com.w2m.backend.participant.entity.Participant;
 import com.w2m.backend.participant.repository.ParticipantRepository;
+import com.w2m.backend.rag.service.DefaultDescriptionFormatter;
+import com.w2m.backend.rag.service.PlaceDescriptionService;
 import com.w2m.backend.vote.repository.VoteRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -32,6 +34,7 @@ public class PlaceCandidateService {
     private final KakaoLocalApiClient kakaoLocalApiClient;
     private final CandidateReactionRepository candidateReactionRepository;
     private final VoteRepository voteRepository;
+    private final PlaceDescriptionService placeDescriptionService;
 
     private static final int SEARCH_RADIUS_METERS = 1500;
     private final ParticipantRepository participantRepository;
@@ -67,6 +70,10 @@ public class PlaceCandidateService {
                 .map(place -> scorePlace(place, locations))
                 .sorted(Comparator.comparingDouble(CandidateScore:: avgDistance))
                 .toList();
+
+        if (scores.size() < 3) {
+            throw new IllegalStateException("출발 위치 주변에서 추천할 장소를 3곳 이상 찾지 못했어요.");
+        }
 
         CandidateScore fastest = scores.get(0);
         CandidateScore optimal = scores.get(1); // review 도메인 아직 없어서 임시: 평균거리 2등(9.10)
@@ -131,31 +138,49 @@ public class PlaceCandidateService {
                 .build();
     }
 
-    /* 리뷰 없는 초기 단계용 설명 문장 — 우리가 계산한 실제 데이터로만 구성
-    근데 문장력이 좀 아쉬워서 리뷰 도메인 완성 후 LLM API 붙여서
-    API에서 받아온 실제 데이터들을 LLM에 넘겨 자연스러운 문장 구현 해달라고 할 예정 */
+    /* 후보에 저장하는 기본 설명 — 우리가 계산한 실제 거리로만 구성 (예: "평균 265m · 가장 빠른 동선").
+    리뷰가 충분히 쌓인 장소는 조회할 때 rag 패키지의 AI 설명이 이 문구 대신 내려간다. */
     private String buildDescription(PlaceCandidate.CandidateType type, CandidateScore score) {
-        int distance = (int) Math.round(score.avgDistance());
-
-        return switch (type) {
-            case FASTEST -> String.format("참여자들과 평균 %dm로 가장 가까운 곳이에요!", distance);
-            case BALANCED -> String.format("참여자들 간 이동 거리 차이가 적어, 다 같이 부담 없이 모일 수 있는 곳이에요. (평균 %dm)", distance);
-            case OPTIMAL -> String.format("평균 %dm 거리의 무난한 곳이에요.", distance);
-        };
+        return DefaultDescriptionFormatter.format(type, score.avgDistance());
     }
     public record Coordinate(double latitude, double longitude){}
 
     private record CandidateScore(KakaoPlaceDto place, double avgDistance, double maxDistance,
   double spread) {}
 
-    public List<CandidateResponse> getCandidates(Long meetingId ,Long userId) {
-        List<PlaceCandidate> candidates = placeCandidateRepository.findByMeetingId(meetingId);
-        if (candidates.isEmpty()) { //후보 없으면 그 자리에서 생성
-            candidates = generateCandidates(meetingId);
+    /* 후보 최초 생성. 전원이 위치를 입력하기 전에 만들면 먼저 입력한 사람 위치만으로 후보가 굳어버리므로 막는다.
+    전원이 동시에 화면에 들어오면 요청이 겹치므로, 모임 행을 잠그고 다시 확인해서 후보가 한 번만 만들어지게 한다. */
+    private List<PlaceCandidate> generateCandidatesOnce(Long meetingId) {
+        meetingRepository.findWithLockById(meetingId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 모임입니다!"));
+
+        // 일반 조회는 잠금을 기다리기 전의 스냅샷(REPEATABLE READ)을 보므로, 잠금 읽기로 최신 상태를 다시 확인한다.
+        List<PlaceCandidate> candidates = placeCandidateRepository.findLatestByMeetingId(meetingId);
+        if (!candidates.isEmpty()) {
+            return candidates;
         }
 
+        List<Participant> participants = participantRepository.findByMeetingId(meetingId);
+        if (participants.isEmpty() || !participants.stream().allMatch(Participant::isLocationSelected)) {
+            throw new IllegalStateException("모든 참여자가 출발 위치를 입력한 뒤에 후보를 확인할 수 있습니다.");
+        }
+        return generateCandidates(meetingId);
+    }
+
+    @Transactional
+    public List<CandidateResponse> getCandidates(Long meetingId ,Long userId) {
+        // 모임 참여자가 아니면 후보 생성(외부 API 호출, 모임 잠금)을 일으키지 못하도록 먼저 확인한다.
         Participant participant = participantRepository.findByMeetingIdAndUserId(meetingId,userId)
                 .orElseThrow(() -> new IllegalArgumentException("이 모임의 참여자가 아닙니다."));
+
+        List<PlaceCandidate> candidates = placeCandidateRepository.findByMeetingId(meetingId);
+        if (candidates.isEmpty()) { //후보 없으면 그 자리에서 생성
+            candidates = generateCandidatesOnce(meetingId);
+        }
+
+        // 리뷰 기반 AI 설명이 저장된 장소는 그 설명을, 아니면 후보에 저장된 기본 문구를 쓴다. (LLM 호출 없이 읽기만 함)
+        Map<String, String> aiDescriptions = placeDescriptionService.findCached(
+                candidates.stream().map(PlaceCandidate::getKakaoPlaceId).toList());
 
         return candidates.stream()
                 .map(candidate -> {
@@ -168,7 +193,8 @@ public class PlaceCandidateService {
                             .map(CandidateReaction::getReactionType).
                             orElse(null);
 
-                    return CandidateResponse.of(candidate, likeCount, dislikeCount, myReaction);
+                    String description = aiDescriptions.getOrDefault(candidate.getKakaoPlaceId(), candidate.getDescription());
+                    return CandidateResponse.of(candidate, likeCount, dislikeCount, myReaction, description);
                 })
                 .toList();
     }
@@ -180,6 +206,11 @@ public class PlaceCandidateService {
 
         PlaceCandidate candidate = placeCandidateRepository.findById(candidateId)
                 .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 후보입니다."));
+
+        // 확정 이후에 싫어요 과반으로 확정된 후보가 삭제되면 모임이 참조하는 행이 사라져 오류가 나므로 막는다.
+        if (candidate.getMeeting().getStatus() == Meeting.MeetingStatus.CONFIRMED) {
+            throw new IllegalStateException("이미 투표가 마감되어 반응을 바꿀 수 없습니다.");
+        }
 
         Optional<CandidateReaction> existing =
                 candidateReactionRepository.findByCandidateAndParticipant(candidate, participant);

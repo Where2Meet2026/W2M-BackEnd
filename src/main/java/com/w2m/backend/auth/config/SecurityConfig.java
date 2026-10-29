@@ -24,6 +24,10 @@ public class SecurityConfig {
     private final UserService userService;
     private final CustomOAuth2UserService customOAuth2UserService;
     private final OAuth2SuccessHandler oAuth2SuccessHandler;
+    // 쉼표로 여러 개 지정 가능. 시연 기기/배포 주소로 접속할 때 환경변수 FRONTEND_ORIGINS로 바꾼다.
+    @Value("${FRONTEND_ORIGINS:http://localhost:5173}")
+    private String[] frontendOrigins;
+
     @Value("${JWT_SECRET_KEY}")
     private String secretKey;
     private final RedisTemplate<String, Object> redisTemplate;
@@ -43,6 +47,7 @@ public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws
                     .requestMatchers(
                             "/api/auth/user/login",
                             "/api/auth/signup",
+                            "/api/auth/social-signup",
                             "/api/v1/send-code",
                             "/api/v1/verify-code",
                             "/api/v1/status",
@@ -75,7 +80,9 @@ public SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity) throws
 @Bean
 public org.springframework.web.cors.CorsConfigurationSource corsConfigurationSource() {
     org.springframework.web.cors.CorsConfiguration configuration = new org.springframework.web.cors.CorsConfiguration();
-    configuration.addAllowedOrigin("http://localhost:5173"); // 프론트엔드 주소
+    for (String origin : frontendOrigins) {
+        configuration.addAllowedOrigin(origin.trim()); // 프론트엔드 주소
+    }
     configuration.addAllowedMethod("*");
     configuration.addAllowedHeader("*");
     configuration.setAllowCredentials(true);

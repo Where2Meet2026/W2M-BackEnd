@@ -1,7 +1,9 @@
 package com.w2m.backend.candidate.service;
 
 import com.w2m.backend.candidate.client.KakaoLocalApiClient;
+import com.w2m.backend.candidate.client.ODsayClient;
 import com.w2m.backend.candidate.dto.response.CandidateResponse;
+import com.w2m.backend.candidate.dto.response.ODsayRouteResponse;
 import com.w2m.backend.candidate.entity.CandidateReaction;
 import com.w2m.backend.candidate.entity.PlaceCandidate;
 import com.w2m.backend.candidate.repository.CandidateReactionRepository;
@@ -19,6 +21,7 @@ import org.springframework.stereotype.Service;
 import com.w2m.backend.candidate.dto.response.KakaoLocalSearchResponse.KakaoPlaceDto;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -32,6 +35,7 @@ public class PlaceCandidateService {
     private final KakaoLocalApiClient kakaoLocalApiClient;
     private final CandidateReactionRepository candidateReactionRepository;
     private final VoteRepository voteRepository;
+    private final ODsayClient odsayClient;
 
     private static final int SEARCH_RADIUS_METERS = 1500;
     private final ParticipantRepository participantRepository;
@@ -77,11 +81,11 @@ public class PlaceCandidateService {
                 .min(Comparator.comparingDouble(CandidateScore::spread))
                 .orElse(scores.get(2));
 
-            List<PlaceCandidate> candidates = List.of(
-                    toEntity(meeting, fastest, PlaceCandidate.CandidateType.FASTEST),
-                    toEntity(meeting, balanced , PlaceCandidate.CandidateType.BALANCED),
-                    toEntity(meeting, optimal , PlaceCandidate.CandidateType.OPTIMAL)
-            );
+        List<PlaceCandidate> candidates = List.of(
+                toEntity(meeting, withTransitTime(fastest, locations), PlaceCandidate.CandidateType.FASTEST),
+                toEntity(meeting, withTransitTime(balanced, locations), PlaceCandidate.CandidateType.BALANCED),
+                toEntity(meeting, withTransitTime(optimal, locations), PlaceCandidate.CandidateType.OPTIMAL)
+        );
             return placeCandidateRepository.saveAll(candidates);
     }
     // 후보 장소 하나 당, 참여자 전원과의 거리를 계산해서 평균 / 최대 / 편차를 구함
@@ -98,7 +102,7 @@ public class PlaceCandidateService {
         double max = Collections.max(distances);
         double min = Collections.min(distances);
 
-        return new CandidateScore(place, avg, max, max - min);
+        return new CandidateScore(place, avg, max, max - min, null, null);
     }
     private List<KakaoPlaceDto> searchCandidatePlaces(Coordinate centroid, Meeting.PlaceCategory category) {
         Meeting.PlaceCategory effectiveCategory = (category != null) ? category : Meeting.PlaceCategory.ANY;
@@ -127,6 +131,8 @@ public class PlaceCandidateService {
                 .type(type)
                 .avgDistanceMeters(score.avgDistance())
                 .maxDistanceMeters(score.maxDistance())
+                .avgTravelMinutes(score.avgMinutes())
+                .maxTravelMinutes(score.maxMinutes())
                 .description(buildDescription(type, score))
                 .build();
     }
@@ -146,7 +152,11 @@ public class PlaceCandidateService {
     public record Coordinate(double latitude, double longitude){}
 
     private record CandidateScore(KakaoPlaceDto place, double avgDistance, double maxDistance,
-  double spread) {}
+  double spread, Integer avgMinutes, Integer maxMinutes) {
+        CandidateScore withMinutes(int avg, int max) {
+            return new CandidateScore(place , avgDistance, maxDistance, spread, avg, max);
+        }
+    }
 
     public List<CandidateResponse> getCandidates(Long meetingId ,Long userId) {
         List<PlaceCandidate> candidates = placeCandidateRepository.findByMeetingId(meetingId);
@@ -234,6 +244,27 @@ public class PlaceCandidateService {
         voteRepository.deleteByCandidateId(oldCandidate.getId());
         placeCandidateRepository.delete(oldCandidate);
         placeCandidateRepository.save(toEntity(meeting, replacement, oldCandidate.getType()));
+        placeCandidateRepository.save(toEntity(meeting, withTransitTime(replacement,locations), oldCandidate.getType()));
+    }
+    private CandidateScore withTransitTime(CandidateScore score,
+        List<ParticipantLocation> locations) {
+        double placeLat = Double.parseDouble(score.place().latitude());
+        double placeLng = Double.parseDouble(score.place().longitude());
+
+        List<Integer>minutes = new ArrayList<>();
+        for(ParticipantLocation loc: locations) {
+            Optional<Integer> time = odsayClient
+                                    .findRoute(loc.getLatitude(), loc.getLongitude(),
+                                            placeLat,placeLng).map(ODsayRouteResponse.Info::totalTime);
+            if(time.isEmpty()) {
+                return score;
+            }
+            minutes.add(time.get());
+        }
+        int avg = (int) Math.round(minutes.stream().mapToInt(Integer::intValue).average().orElse(0));
+
+        int max = Collections.max(minutes);
+        return score.withMinutes(avg, max);
     }
 
 }

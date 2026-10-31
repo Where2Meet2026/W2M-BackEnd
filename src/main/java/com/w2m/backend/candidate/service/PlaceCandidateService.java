@@ -141,12 +141,15 @@ public class PlaceCandidateService {
     근데 문장력이 좀 아쉬워서 리뷰 도메인 완성 후 LLM API 붙여서
     API에서 받아온 실제 데이터들을 LLM에 넘겨 자연스러운 문장 구현 해달라고 할 예정 */
     private String buildDescription(PlaceCandidate.CandidateType type, CandidateScore score) {
-        int distance = (int) Math.round(score.avgDistance());
+        // 대중교통 시간을 구했으면 "평균 N분", 못 구했으면 기존처럼 "평균 Nm"
+        String measure = score.avgMinutes() != null
+                ? "평균 " + score.avgMinutes() + "분"
+                : "평균 " + (int) Math.round(score.avgDistance()) + "m";
 
         return switch (type) {
-            case FASTEST -> String.format("참여자들과 평균 %dm로 가장 가까운 곳이에요!", distance);
-            case BALANCED -> String.format("참여자들 간 이동 거리 차이가 적어, 다 같이 부담 없이 모일 수 있는 곳이에요. (평균 %dm)", distance);
-            case OPTIMAL -> String.format("평균 %dm 거리의 무난한 곳이에요.", distance);
+            case FASTEST -> String.format("참여자들과 가장 가까운 곳이에요! (%s)", measure);
+            case BALANCED -> String.format("참여자들 간 이동 차이가 적어, 다 같이 부담 없이 모일 수 있는 곳이에요. (%s)", measure);
+            case OPTIMAL -> String.format("무난한 거리의 곳이에요. (%s)", measure);
         };
     }
     public record Coordinate(double latitude, double longitude){}
@@ -243,7 +246,6 @@ public class PlaceCandidateService {
         candidateReactionRepository.deleteByCandidate(oldCandidate);
         voteRepository.deleteByCandidateId(oldCandidate.getId());
         placeCandidateRepository.delete(oldCandidate);
-        placeCandidateRepository.save(toEntity(meeting, replacement, oldCandidate.getType()));
         placeCandidateRepository.save(toEntity(meeting, withTransitTime(replacement,locations), oldCandidate.getType()));
     }
     private CandidateScore withTransitTime(CandidateScore score,

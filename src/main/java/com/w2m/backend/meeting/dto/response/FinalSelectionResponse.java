@@ -14,6 +14,7 @@ public class FinalSelectionResponse {
     private String address;
     private Double latitude;
     private Double longitude;
+    private Integer avgTravelMinutes;
     private LocalDateTime confirmedStartDateTime;
     private LocalDateTime confirmedEndDateTime;
 
@@ -24,6 +25,7 @@ public class FinalSelectionResponse {
                 .address(candidate.getAddress())
                 .latitude(candidate.getLatitude())
                 .longitude(candidate.getLongitude())
+                .avgTravelMinutes(candidate.getAvgTravelMinutes())
                 .confirmedStartDateTime(meeting.getConfirmedStartDateTime())
                 .confirmedEndDateTime(meeting.getConfirmedEndDateTime())
                 .build();

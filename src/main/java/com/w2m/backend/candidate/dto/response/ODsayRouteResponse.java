@@ -3,12 +3,14 @@ package com.w2m.backend.candidate.dto.response;
 import com.fasterxml.jackson.annotation.JsonIgnoreProperties;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 // ODsay 대중교통 길찾기 응답. 우리가 쓰는 값(path[0].info)만 받고 나머지 필드는 무시한다.
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record ODsayRouteResponse(
-        Result result
+        Result result,
+        Map<String, Object> error   // ODsay가 에러를 담아 보낼 때 들어오는 부분 (없으면 null)
 ) {
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record Result(List<Path> path) {}

@@ -15,6 +15,8 @@ public class CandidateResponse {
     private String address;
     private PlaceCandidate.CandidateType type;
     private Double avgDistanceMeters;
+    private Integer avgTravelMinutes;
+    private Integer maxTravelMinutes;
     private String description;
     private long likeCount;
     private long dislikeCount;
@@ -28,6 +30,8 @@ public class CandidateResponse {
                 .address(candidate.getAddress())
                 .type(candidate.getType())
                 .avgDistanceMeters(candidate.getAvgDistanceMeters())
+                .avgTravelMinutes(candidate.getAvgTravelMinutes())
+                .maxTravelMinutes(candidate.getMaxTravelMinutes())
                 .description(candidate.getDescription())
                 .likeCount(likeCount)
                 .dislikeCount(dislikeCount)

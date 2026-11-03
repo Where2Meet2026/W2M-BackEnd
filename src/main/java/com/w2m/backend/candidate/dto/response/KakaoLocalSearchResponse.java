@@ -15,6 +15,7 @@ public record KakaoLocalSearchResponse(
             @JsonProperty("place_name") String placeName,
             @JsonProperty("address_name") String addressName,
             @JsonProperty("category_name") String categoryName,
+            @JsonProperty("category_group_code") String categoryGroupCode,
             @JsonProperty("x") String longitude,
             @JsonProperty("y") String latitude
     ) {}

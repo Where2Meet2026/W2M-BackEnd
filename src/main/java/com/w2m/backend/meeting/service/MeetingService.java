@@ -96,7 +96,10 @@ public class MeetingService {
             boolean alreadyAddedAsHost = hostMeetings.stream()
                     .anyMatch(hostMeeting -> hostMeeting.getId().equals(meeting.getId()));
             if (!alreadyAddedAsHost) {
-                result.add(MeetingResponse.from(meeting, "PARTICIPANT", hasReviewed(meeting, reviewedPlaceIds)));
+                // 후보가 이미 만들어진 모임은 나가기를 막기 때문에, 화면에도 나가기 버튼을 숨기도록 알려준다
+                boolean candidatesCreated = placeCandidateRepository.existsByMeetingId(meeting.getId());
+                result.add(MeetingResponse.from(meeting, "PARTICIPANT",
+                        hasReviewed(meeting, reviewedPlaceIds), candidatesCreated));
             }
         }
         return result;

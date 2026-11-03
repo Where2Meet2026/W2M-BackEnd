@@ -30,6 +30,13 @@ public class MeetingResponse {
     }
 
     public static MeetingResponse from(Meeting meeting, String role, boolean reviewed) {
+        return from(meeting, role, reviewed, false);
+    }
+
+    // candidatesCreated: 이 모임에 후보 장소가 이미 만들어졌는지.
+    // 후보가 생긴 뒤에는 나가기가 막히므로(ParticipantService.leaveMeeting),
+    // 내 방 목록에서 나가기 버튼이 보이지 않도록 canLeave를 false로 내려준다.
+    public static MeetingResponse from(Meeting meeting, String role, boolean reviewed, boolean candidatesCreated) {
         return MeetingResponse.builder()
                 .meetingId(meeting.getId())
                 .title(meeting.getTitle())
@@ -41,7 +48,7 @@ public class MeetingResponse {
                 .confirmedEndDateTime(meeting.getConfirmedEndDateTime())
                 .role(role)
                 .canDelete("HOST".equals(role))
-                .canLeave("PARTICIPANT".equals(role))
+                .canLeave("PARTICIPANT".equals(role) && !candidatesCreated)
                 .reviewed(reviewed)
                 .build();
     }

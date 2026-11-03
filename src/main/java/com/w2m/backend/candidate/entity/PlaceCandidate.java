@@ -47,13 +47,19 @@ public class PlaceCandidate {
     @Column(nullable = false)
     private Double maxDistanceMeters;
 
+    @Column
+    private Integer avgTravelMinutes;
+
+    @Column
+    private Integer maxTravelMinutes;
+
     // AI가 리뷰를 바탕으로 생성한 추천 설명 (아직 리뷰가 없으면 null)
     @Column(columnDefinition = "TEXT")
     private String description;
 
     @Builder
     public PlaceCandidate(Meeting meeting, String kakaoPlaceId, String placeName, String address, Double latitude, Double longitude,
-                           CandidateType type, Double avgDistanceMeters, Double maxDistanceMeters, String description) {
+                           CandidateType type, Double avgDistanceMeters, Double maxDistanceMeters, Integer avgTravelMinutes, Integer maxTravelMinutes, String description) {
         this.meeting = meeting;
         this.kakaoPlaceId = kakaoPlaceId;
         this.placeName = placeName;
@@ -63,6 +69,8 @@ public class PlaceCandidate {
         this.type = type;
         this.avgDistanceMeters = avgDistanceMeters;
         this.maxDistanceMeters = maxDistanceMeters;
+        this.avgTravelMinutes = avgTravelMinutes;
+        this.maxTravelMinutes = maxTravelMinutes;
         this.description = description;
     }
 

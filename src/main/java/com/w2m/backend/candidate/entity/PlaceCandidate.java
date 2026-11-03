@@ -30,6 +30,10 @@ public class PlaceCandidate {
     @Column(nullable = false)
     private String address;
 
+    // 카카오 카테고리 그룹 코드 (CE7 카페, FD6 음식점). 예전 후보는 null
+    @Column(length = 10)
+    private String categoryCode;
+
     @Column(nullable = false)
     private Double latitude;
 
@@ -58,12 +62,13 @@ public class PlaceCandidate {
     private String description;
 
     @Builder
-    public PlaceCandidate(Meeting meeting, String kakaoPlaceId, String placeName, String address, Double latitude, Double longitude,
+    public PlaceCandidate(Meeting meeting, String kakaoPlaceId, String placeName, String address, String categoryCode ,Double latitude, Double longitude,
                            CandidateType type, Double avgDistanceMeters, Double maxDistanceMeters, Integer avgTravelMinutes, Integer maxTravelMinutes, String description) {
         this.meeting = meeting;
         this.kakaoPlaceId = kakaoPlaceId;
         this.placeName = placeName;
         this.address = address;
+        this.categoryCode = categoryCode;
         this.latitude = latitude;
         this.longitude = longitude;
         this.type = type;

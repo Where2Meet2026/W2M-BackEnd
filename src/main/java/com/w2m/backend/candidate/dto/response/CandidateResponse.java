@@ -13,6 +13,7 @@ public class CandidateResponse {
     private Long candidateId;
     private String placeName;
     private String address;
+    private String categoryCode;
     private PlaceCandidate.CandidateType type;
     private Double avgDistanceMeters;
     private Integer avgTravelMinutes;
@@ -28,6 +29,7 @@ public class CandidateResponse {
                 .candidateId(candidate.getId())
                 .placeName(candidate.getPlaceName())
                 .address(candidate.getAddress())
+                .categoryCode(candidate.getCategoryCode())
                 .type(candidate.getType())
                 .avgDistanceMeters(candidate.getAvgDistanceMeters())
                 .avgTravelMinutes(candidate.getAvgTravelMinutes())

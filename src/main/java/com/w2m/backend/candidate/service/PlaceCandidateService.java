@@ -126,6 +126,7 @@ public class PlaceCandidateService {
                 .kakaoPlaceId(score.place().placeId())
                 .placeName(score.place().placeName())
                 .address(score.place().addressName())
+                .categoryCode(score.place().categoryGroupCode())
                 .latitude(Double.parseDouble(score.place().latitude()))
                 .longitude(Double.parseDouble(score.place().longitude()))
                 .type(type)
@@ -144,13 +145,20 @@ public class PlaceCandidateService {
         // 대중교통 시간을 구했으면 "평균 N분", 못 구했으면 기존처럼 "평균 Nm"
         String measure = score.avgMinutes() != null
                 ? "평균 " + score.avgMinutes() + "분"
-                : "평균 " + (int) Math.round(score.avgDistance()) + "m";
+                : "평균 " + formatDistance(score.avgDistance());
 
         return switch (type) {
             case FASTEST -> String.format("참여자들과 가장 가까운 곳이에요! (%s)", measure);
             case BALANCED -> String.format("참여자들 간 이동 차이가 적어, 다 같이 부담 없이 모일 수 있는 곳이에요. (%s)", measure);
             case OPTIMAL -> String.format("무난한 거리의 곳이에요. (%s)", measure);
         };
+    }
+    // 1km 이상이면 "5.9km", 미만이면 "650m"
+    private String formatDistance(double meters) {
+        long rounded = Math.round(meters);
+        return rounded >= 1000
+                ? String.format(Locale.ROOT, "%.1fkm", rounded / 1000.0)
+                : rounded + "m";
     }
     public record Coordinate(double latitude, double longitude){}
 

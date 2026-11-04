@@ -15,6 +15,8 @@ public class FinalSelectionResponse {
     private Double latitude;
     private Double longitude;
     private Integer avgTravelMinutes;
+    // 카카오 장소 ID. 결과 화면 "지도에서 보기"에서 카카오맵의 그 장소 화면(/link/map/장소ID)을 여는 데 쓴다
+    private String kakaoPlaceId;
     private LocalDateTime confirmedStartDateTime;
     private LocalDateTime confirmedEndDateTime;
 
@@ -26,6 +28,7 @@ public class FinalSelectionResponse {
                 .latitude(candidate.getLatitude())
                 .longitude(candidate.getLongitude())
                 .avgTravelMinutes(candidate.getAvgTravelMinutes())
+                .kakaoPlaceId(candidate.getKakaoPlaceId())
                 .confirmedStartDateTime(meeting.getConfirmedStartDateTime())
                 .confirmedEndDateTime(meeting.getConfirmedEndDateTime())
                 .build();

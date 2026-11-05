@@ -45,7 +45,7 @@ public class EmailService {
 
         } catch (MessagingException e) {
             // 이메일 전송 실패 시 예외 처리
-            // 예시: throw new EmailSendException("이메일 전송에 실패했습니다.", e);
+            // 예시: throw new EmailSendException("이메일을 보내지 못했어요.", e);
         }
     }
 }

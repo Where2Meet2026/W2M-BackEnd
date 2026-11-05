@@ -74,6 +74,9 @@ description-ai:
   max-reviews: 20
   max-comment-chars: 200
   max-output-tokens: 1024
+odsay:
+  # ODsay LAB 앱의 API 키. application-local.yml 또는 환경변수 ODSAY_API_KEY에 넣는다. 비어 있으면 하버사인으로 대체한다.
+  api-key: ${ODSAY_API_KEY:}
 
 logging:
   level:

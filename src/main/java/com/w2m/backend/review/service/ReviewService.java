@@ -39,15 +39,15 @@ public class ReviewService {
     @Transactional
     public Long createReview(Long meetingId, CreateReviewRequest request, Long userId) {
         Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 모임입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없어요."));
 
         if (!participantRepository.existsByMeetingIdAndUserId(meetingId, userId)) {
-            throw new IllegalArgumentException("이 모임의 참여자가 아닙니다.");
+            throw new IllegalArgumentException("이 모임의 참여자가 아니에요.");
         }
 
         // 투표로 확정된 장소가 있어야만(= 모임이 CONFIRMED여야만) 리뷰를 쓸 수 있다.
         if (meeting.getStatus() != Meeting.MeetingStatus.CONFIRMED) {
-            throw new IllegalStateException("아직 확정되지 않은 모임입니다.");
+            throw new IllegalStateException("아직 확정되지 않은 모임이에요.");
         }
 
         // 다녀온 뒤에만 리뷰를 쓸 수 있다. 약속 시간은 사용자가 한국 시간으로 고른 값이라 서버 시간대와 무관하게 한국 시간으로 비교한다.
@@ -59,11 +59,11 @@ public class ReviewService {
         PlaceCandidate confirmedPlace = meeting.getConfirmedCandidate();
 
         if (reviewRepository.existsByPlaceIdAndUserId(confirmedPlace.getKakaoPlaceId(), userId)) {
-            throw new IllegalStateException("이미 이 장소에 리뷰를 작성했습니다.");
+            throw new IllegalStateException("이미 이 장소에 리뷰를 썼어요.");
         }
 
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없어요."));
 
         Review review = Review.builder()
                 .user(user)
@@ -80,7 +80,7 @@ public class ReviewService {
             // 동시에 두 번 요청되면 위의 exists 검사를 둘 다 통과할 수 있어서, 유니크 제약 위반도 같은 오류로 처리한다.
             reviewId = reviewRepository.saveAndFlush(review).getId();
         } catch (DataIntegrityViolationException e) {
-            throw new IllegalStateException("이미 이 장소에 리뷰를 작성했습니다.");
+            throw new IllegalStateException("이미 이 장소에 리뷰를 썼어요.");
         }
 
         // 커밋 후 백그라운드에서 이 장소의 설명 문구를 다시 만든다 (rag 패키지의 리스너가 처리).
@@ -91,10 +91,10 @@ public class ReviewService {
     @Transactional(readOnly = true)
     public List<ReviewResponse> getReviews(Long meetingId, Long userId) {
         Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 모임입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없어요."));
 
         if (!participantRepository.existsByMeetingIdAndUserId(meetingId, userId)) {
-            throw new IllegalArgumentException("이 모임의 참여자가 아닙니다.");
+            throw new IllegalArgumentException("이 모임의 참여자가 아니에요.");
         }
 
         // 확정 장소가 없으면 쌓인 리뷰도 없다.
@@ -113,18 +113,18 @@ public class ReviewService {
     @Transactional(readOnly = true)
     public PlaceReviewsResponse getCandidateReviews(Long meetingId, Long candidateId, Long userId) {
         if (!meetingRepository.existsById(meetingId)) {
-            throw new IllegalArgumentException("존재하지 않는 모임입니다.");
+            throw new IllegalArgumentException("모임을 찾을 수 없어요.");
         }
 
         if (!participantRepository.existsByMeetingIdAndUserId(meetingId, userId)) {
-            throw new IllegalArgumentException("이 모임의 참여자가 아닙니다.");
+            throw new IllegalArgumentException("이 모임의 참여자가 아니에요.");
         }
 
         // 다른 모임의 후보 id로 조회하지 못하도록 이 모임의 후보 중에서만 찾는다.
         PlaceCandidate candidate = placeCandidateRepository.findByMeetingId(meetingId).stream()
                 .filter(c -> c.getId().equals(candidateId))
                 .findFirst()
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 후보입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("후보를 찾을 수 없어요."));
 
         List<ReviewResponse> reviews = reviewRepository.findByPlaceIdOrderByCreatedAtDesc(candidate.getKakaoPlaceId())
                 .stream()

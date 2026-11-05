@@ -32,7 +32,7 @@ public class AvailabilityService {
     @Transactional
     public void saveAvailabilities(Long participantId, SaveAvailabilityRequest request) {
         Participant participant = participantRepository.findById(participantId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 참여자입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("참여자를 찾을 수 없어요."));
 
         // 같은 모임의 시간 저장을 한 건씩 처리해서, 마지막 입력자를 놓치지 않고 판정한다.
         // (참여자 행을 고치기 전에 잠가야 동시에 입력한 두 사람이 서로를 기다리는 교착이 생기지 않는다)
@@ -81,7 +81,7 @@ public class AvailabilityService {
     @Transactional(readOnly = true)
     public List<Availability> getAvailabilities(Long participantId) {
         Participant participant = participantRepository.findById(participantId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 참여자입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("참여자를 찾을 수 없어요."));
         
         return availabilityRepository.findByParticipant(participant);
     }

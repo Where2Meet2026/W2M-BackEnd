@@ -1,7 +1,9 @@
 package com.w2m.backend.candidate.service;
 
 import com.w2m.backend.candidate.client.KakaoLocalApiClient;
+import com.w2m.backend.candidate.client.ODsayClient;
 import com.w2m.backend.candidate.dto.response.CandidateResponse;
+import com.w2m.backend.candidate.dto.response.ODsayRouteResponse;
 import com.w2m.backend.candidate.entity.CandidateReaction;
 import com.w2m.backend.candidate.entity.PlaceCandidate;
 import com.w2m.backend.candidate.repository.CandidateReactionRepository;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import com.w2m.backend.candidate.dto.response.KakaoLocalSearchResponse.KakaoPlaceDto;
 import org.springframework.transaction.annotation.Transactional;
 
+
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -35,6 +38,7 @@ public class PlaceCandidateService {
     private final CandidateReactionRepository candidateReactionRepository;
     private final VoteRepository voteRepository;
     private final PlaceDescriptionService placeDescriptionService;
+    private final ODsayClient odsayClient;
 
     private static final int SEARCH_RADIUS_METERS = 1500;
     private final ParticipantRepository participantRepository;
@@ -47,19 +51,19 @@ public class PlaceCandidateService {
         double avgLat = locations.stream()
                 .mapToDouble(ParticipantLocation::getLatitude)
                 .average()
-                .orElseThrow(() -> new IllegalStateException("위치 데이터가 없습니다"));
+                .orElseThrow(() -> new IllegalStateException("아직 입력된 출발 위치가 없어요."));
 
         double avgLng = locations.stream()
                 .mapToDouble(ParticipantLocation::getLongitude)
                 .average()
-                .orElseThrow(() -> new IllegalStateException("위치 데이터가 없습니다"));
+                .orElseThrow(() -> new IllegalStateException("아직 입력된 출발 위치가 없어요."));
 
         return new Coordinate(avgLat, avgLng);
     }
 
     public List<PlaceCandidate> generateCandidates(Long meetingId){
         Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 모임입니다!"));
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없어요."));
         List<ParticipantLocation> locations =
     participantLocationRepository.findAllByMeetingId(meetingId);
         Coordinate centroid = calculateCentroid(meetingId);
@@ -84,11 +88,11 @@ public class PlaceCandidateService {
                 .min(Comparator.comparingDouble(CandidateScore::spread))
                 .orElse(scores.get(2));
 
-            List<PlaceCandidate> candidates = List.of(
-                    toEntity(meeting, fastest, PlaceCandidate.CandidateType.FASTEST),
-                    toEntity(meeting, balanced , PlaceCandidate.CandidateType.BALANCED),
-                    toEntity(meeting, optimal , PlaceCandidate.CandidateType.OPTIMAL)
-            );
+        List<PlaceCandidate> candidates = List.of(
+                toEntity(meeting, withTransitTime(fastest, locations), PlaceCandidate.CandidateType.FASTEST),
+                toEntity(meeting, withTransitTime(balanced, locations), PlaceCandidate.CandidateType.BALANCED),
+                toEntity(meeting, withTransitTime(optimal, locations), PlaceCandidate.CandidateType.OPTIMAL)
+        );
             return placeCandidateRepository.saveAll(candidates);
     }
     // 후보 장소 하나 당, 참여자 전원과의 거리를 계산해서 평균 / 최대 / 편차를 구함
@@ -105,7 +109,7 @@ public class PlaceCandidateService {
         double max = Collections.max(distances);
         double min = Collections.min(distances);
 
-        return new CandidateScore(place, avg, max, max - min);
+        return new CandidateScore(place, avg, max, max - min, null, null);
     }
     private List<KakaoPlaceDto> searchCandidatePlaces(Coordinate centroid, Meeting.PlaceCategory category) {
         Meeting.PlaceCategory effectiveCategory = (category != null) ? category : Meeting.PlaceCategory.ANY;
@@ -129,11 +133,14 @@ public class PlaceCandidateService {
                 .kakaoPlaceId(score.place().placeId())
                 .placeName(score.place().placeName())
                 .address(score.place().addressName())
+                .categoryCode(score.place().categoryGroupCode())
                 .latitude(Double.parseDouble(score.place().latitude()))
                 .longitude(Double.parseDouble(score.place().longitude()))
                 .type(type)
                 .avgDistanceMeters(score.avgDistance())
                 .maxDistanceMeters(score.maxDistance())
+                .avgTravelMinutes(score.avgMinutes())
+                .maxTravelMinutes(score.maxMinutes())
                 .description(buildDescription(type, score))
                 .build();
     }
@@ -142,11 +149,32 @@ public class PlaceCandidateService {
     리뷰가 충분히 쌓인 장소는 조회할 때 rag 패키지의 AI 설명이 이 문구 대신 내려간다. */
     private String buildDescription(PlaceCandidate.CandidateType type, CandidateScore score) {
         return DefaultDescriptionFormatter.format(type, score.avgDistance());
+        // 대중교통 시간을 구했으면 "평균 N분", 못 구했으면 기존처럼 "평균 Nm"
+        String measure = score.avgMinutes() != null
+                ? "평균 " + score.avgMinutes() + "분"
+                : "평균 " + formatDistance(score.avgDistance());
+
+        return switch (type) {
+            case FASTEST -> String.format("참여자들과 가장 가까운 곳이에요! (%s)", measure);
+            case BALANCED -> String.format("참여자들 간 이동 차이가 적어, 다 같이 부담 없이 모일 수 있는 곳이에요. (%s)", measure);
+            case OPTIMAL -> String.format("무난한 거리의 곳이에요. (%s)", measure);
+        };
+    }
+    // 1km 이상이면 "5.9km", 미만이면 "650m"
+    private String formatDistance(double meters) {
+        long rounded = Math.round(meters);
+        return rounded >= 1000
+                ? String.format(Locale.ROOT, "%.1fkm", rounded / 1000.0)
+                : rounded + "m";
     }
     public record Coordinate(double latitude, double longitude){}
 
     private record CandidateScore(KakaoPlaceDto place, double avgDistance, double maxDistance,
-  double spread) {}
+  double spread, Integer avgMinutes, Integer maxMinutes) {
+        CandidateScore withMinutes(int avg, int max) {
+            return new CandidateScore(place , avgDistance, maxDistance, spread, avg, max);
+        }
+    }
 
     /* 후보 최초 생성. 전원이 위치를 입력하기 전에 만들면 먼저 입력한 사람 위치만으로 후보가 굳어버리므로 막는다.
     전원이 동시에 화면에 들어오면 요청이 겹치므로, 모임 행을 잠그고 다시 확인해서 후보가 한 번만 만들어지게 한다. */
@@ -171,7 +199,7 @@ public class PlaceCandidateService {
     public List<CandidateResponse> getCandidates(Long meetingId ,Long userId) {
         // 모임 참여자가 아니면 후보 생성(외부 API 호출, 모임 잠금)을 일으키지 못하도록 먼저 확인한다.
         Participant participant = participantRepository.findByMeetingIdAndUserId(meetingId,userId)
-                .orElseThrow(() -> new IllegalArgumentException("이 모임의 참여자가 아닙니다."));
+                .orElseThrow(() -> new IllegalArgumentException("이 모임의 참여자가 아니에요."));
 
         List<PlaceCandidate> candidates = placeCandidateRepository.findByMeetingId(meetingId);
         if (candidates.isEmpty()) { //후보 없으면 그 자리에서 생성
@@ -202,10 +230,10 @@ public class PlaceCandidateService {
     public void toggleReaction(Long meetingId, Long candidateId, Long userId,
    CandidateReaction.ReactionType requestedType) {
         Participant participant = participantRepository.findByMeetingIdAndUserId(meetingId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("이 모임의 참가자가 아닙니다."));
+                .orElseThrow(() -> new IllegalArgumentException("이 모임의 참여자가 아니에요."));
 
         PlaceCandidate candidate = placeCandidateRepository.findById(candidateId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 후보입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("후보를 찾을 수 없어요."));
 
         // 확정 이후에 싫어요 과반으로 확정된 후보가 삭제되면 모임이 참조하는 행이 사라져 오류가 나므로 막는다.
         if (candidate.getMeeting().getStatus() == Meeting.MeetingStatus.CONFIRMED) {
@@ -256,7 +284,7 @@ public class PlaceCandidateService {
                 .map(place -> scorePlace(place,locations))
                 .filter(score -> !excludePlaceNames.contains(score.place().placeName())) //이미 후보로 있는 장소는 제외함
                 .min(Comparator.comparingDouble(CandidateScore::avgDistance))
-                .orElseThrow(()-> new IllegalStateException("교체할 후보를 찾을 수 없습니다"));
+                .orElseThrow(()-> new IllegalStateException("교체할 후보를 찾지 못했어요."));
 
         /* 재교체 순서: 반응(deleteByCandidate)·투표(deleteByCandidateId) 먼저 지우고 → 후보 지우고(delete) → 새 후보 저장(save).
         순서가 중요함 — CandidateReaction, Vote가 둘 다 candidate_id로 이 후보를 참조하고 있어서,
@@ -264,7 +292,27 @@ public class PlaceCandidateService {
         candidateReactionRepository.deleteByCandidate(oldCandidate);
         voteRepository.deleteByCandidateId(oldCandidate.getId());
         placeCandidateRepository.delete(oldCandidate);
-        placeCandidateRepository.save(toEntity(meeting, replacement, oldCandidate.getType()));
+        placeCandidateRepository.save(toEntity(meeting, withTransitTime(replacement,locations), oldCandidate.getType()));
+    }
+    private CandidateScore withTransitTime(CandidateScore score,
+        List<ParticipantLocation> locations) {
+        double placeLat = Double.parseDouble(score.place().latitude());
+        double placeLng = Double.parseDouble(score.place().longitude());
+
+        List<Integer>minutes = new ArrayList<>();
+        for(ParticipantLocation loc: locations) {
+            Optional<Integer> time = odsayClient
+                                    .findRoute(loc.getLatitude(), loc.getLongitude(),
+                                            placeLat,placeLng).map(ODsayRouteResponse.Info::totalTime);
+            if(time.isEmpty()) {
+                return score;
+            }
+            minutes.add(time.get());
+        }
+        int avg = (int) Math.round(minutes.stream().mapToInt(Integer::intValue).average().orElse(0));
+
+        int max = Collections.max(minutes);
+        return score.withMinutes(avg, max);
     }
 
 }

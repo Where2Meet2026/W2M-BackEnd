@@ -20,7 +20,7 @@ public class CreateReviewRequest {
     @DecimalMax(value = "5.0", message = "별점은 5 이하여야 합니다.")
     private Double rating;
 
-    @Size(max = 500, message = "한줄평은 500자 이하여야 합니다.")
+    @Size(max = 500, message = "한줄평은 500자까지 쓸 수 있어요.")
     private String comment;
 
     // 0.5 단위만 허용한다 (0.5의 배수는 double로 정확히 표현되므로 2배 한 값이 정수인지 보면 된다).

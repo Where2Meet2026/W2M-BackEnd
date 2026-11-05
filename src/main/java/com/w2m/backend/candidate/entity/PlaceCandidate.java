@@ -30,6 +30,10 @@ public class PlaceCandidate {
     @Column(nullable = false)
     private String address;
 
+    // 카카오 카테고리 그룹 코드 (CE7 카페, FD6 음식점). 예전 후보는 null
+    @Column(length = 10)
+    private String categoryCode;
+
     @Column(nullable = false)
     private Double latitude;
 
@@ -47,22 +51,31 @@ public class PlaceCandidate {
     @Column(nullable = false)
     private Double maxDistanceMeters;
 
+    @Column
+    private Integer avgTravelMinutes;
+
+    @Column
+    private Integer maxTravelMinutes;
+
     // AI가 리뷰를 바탕으로 생성한 추천 설명 (아직 리뷰가 없으면 null)
     @Column(columnDefinition = "TEXT")
     private String description;
 
     @Builder
-    public PlaceCandidate(Meeting meeting, String kakaoPlaceId, String placeName, String address, Double latitude, Double longitude,
-                           CandidateType type, Double avgDistanceMeters, Double maxDistanceMeters, String description) {
+    public PlaceCandidate(Meeting meeting, String kakaoPlaceId, String placeName, String address, String categoryCode ,Double latitude, Double longitude,
+                           CandidateType type, Double avgDistanceMeters, Double maxDistanceMeters, Integer avgTravelMinutes, Integer maxTravelMinutes, String description) {
         this.meeting = meeting;
         this.kakaoPlaceId = kakaoPlaceId;
         this.placeName = placeName;
         this.address = address;
+        this.categoryCode = categoryCode;
         this.latitude = latitude;
         this.longitude = longitude;
         this.type = type;
         this.avgDistanceMeters = avgDistanceMeters;
         this.maxDistanceMeters = maxDistanceMeters;
+        this.avgTravelMinutes = avgTravelMinutes;
+        this.maxTravelMinutes = maxTravelMinutes;
         this.description = description;
     }
 

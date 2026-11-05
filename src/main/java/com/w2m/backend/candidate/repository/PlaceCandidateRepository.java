@@ -12,6 +12,9 @@ import java.util.List;
 public interface PlaceCandidateRepository extends JpaRepository<PlaceCandidate, Long> {
     List<PlaceCandidate> findByMeetingId(Long meetingId);
     void deleteByMeetingId(Long meetingId);
+    // 이 모임에 후보가 하나라도 만들어졌는지.
+    // 후보가 만들어진 뒤에는 참여자 나가기를 막는 데 쓴다 (ParticipantService.leaveMeeting, 내 방 목록의 canLeave)
+    boolean existsByMeetingId(Long meetingId);
 
     // 잠금 읽기(FOR SHARE)는 트랜잭션 시작 시점의 스냅샷이 아니라 가장 최근에 커밋된 값을 읽는다.
     // 모임 행 잠금을 기다리는 사이 다른 요청이 만든 후보를 확실히 보려고 쓴다.

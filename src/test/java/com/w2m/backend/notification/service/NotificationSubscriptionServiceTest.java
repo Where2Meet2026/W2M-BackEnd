@@ -93,7 +93,7 @@ class NotificationSubscriptionServiceTest {
         assertThatThrownBy(() ->
                 notificationSubscriptionService.subscribe(USER_ID, subscribeRequest(ENDPOINT, "p", "a")))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("사용자를 찾을 수 없습니다.");
+                .hasMessage("사용자를 찾을 수 없어요.");
 
         verify(pushSubscriptionRepository, never()).save(any());
     }

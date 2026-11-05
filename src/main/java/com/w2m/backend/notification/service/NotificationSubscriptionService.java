@@ -22,7 +22,7 @@ public class NotificationSubscriptionService {
     @Transactional
     public void subscribe(Long userId, SubscribeRequest request) {
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없어요."));
 
         String p256dh = request.getKeys().getP256dh();
         String auth = request.getKeys().getAuth();

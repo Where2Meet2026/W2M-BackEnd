@@ -25,10 +25,10 @@ public class LocationService {
     @Transactional
     public void saveLocation(Long participantId, SaveLocationRequest request, Long loginUserId) {
         Participant participant = participantRepository.findById(participantId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 참여자입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("참여자를 찾을 수 없어요."));
 
         if (!participant.getUser().getId().equals(loginUserId)) {
-            throw new IllegalArgumentException("본인의 위치만 등록할 수 있습니다.");
+            throw new IllegalArgumentException("내 위치만 등록할 수 있어요.");
         }
 
         participantLocationRepository.findByParticipant(participant)
@@ -53,14 +53,14 @@ public class LocationService {
     @Transactional(readOnly = true)
     public LocationResponse getLocation(Long participantId, Long loginUserId) {
         Participant participant = participantRepository.findById(participantId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 참여자입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("참여자를 찾을 수 없어요."));
 
         if (!participant.getUser().getId().equals(loginUserId)) {
-            throw new IllegalArgumentException("본인의 위치만 조회할 수 있습니다.");
+            throw new IllegalArgumentException("내 위치만 볼 수 있어요.");
         }
 
         ParticipantLocation location = participantLocationRepository.findByParticipant(participant)
-                .orElseThrow(() -> new IllegalArgumentException("저장된 위치가 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("저장된 위치가 없어요."));
 
         return LocationResponse.from(location);
     }

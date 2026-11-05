@@ -48,19 +48,19 @@ public class PlaceCandidateService {
         double avgLat = locations.stream()
                 .mapToDouble(ParticipantLocation::getLatitude)
                 .average()
-                .orElseThrow(() -> new IllegalStateException("위치 데이터가 없습니다"));
+                .orElseThrow(() -> new IllegalStateException("아직 입력된 출발 위치가 없어요."));
 
         double avgLng = locations.stream()
                 .mapToDouble(ParticipantLocation::getLongitude)
                 .average()
-                .orElseThrow(() -> new IllegalStateException("위치 데이터가 없습니다"));
+                .orElseThrow(() -> new IllegalStateException("아직 입력된 출발 위치가 없어요."));
 
         return new Coordinate(avgLat, avgLng);
     }
 
     public List<PlaceCandidate> generateCandidates(Long meetingId){
         Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 모임입니다!"));
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없어요."));
         List<ParticipantLocation> locations =
     participantLocationRepository.findAllByMeetingId(meetingId);
         Coordinate centroid = calculateCentroid(meetingId);
@@ -176,7 +176,7 @@ public class PlaceCandidateService {
         }
 
         Participant participant = participantRepository.findByMeetingIdAndUserId(meetingId,userId)
-                .orElseThrow(() -> new IllegalArgumentException("이 모임의 참여자가 아닙니다."));
+                .orElseThrow(() -> new IllegalArgumentException("이 모임의 참여자가 아니에요."));
 
         return candidates.stream()
                 .map(candidate -> {
@@ -197,10 +197,10 @@ public class PlaceCandidateService {
     public void toggleReaction(Long meetingId, Long candidateId, Long userId,
    CandidateReaction.ReactionType requestedType) {
         Participant participant = participantRepository.findByMeetingIdAndUserId(meetingId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("이 모임의 참가자가 아닙니다."));
+                .orElseThrow(() -> new IllegalArgumentException("이 모임의 참여자가 아니에요."));
 
         PlaceCandidate candidate = placeCandidateRepository.findById(candidateId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 후보입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("후보를 찾을 수 없어요."));
 
         Optional<CandidateReaction> existing =
                 candidateReactionRepository.findByCandidateAndParticipant(candidate, participant);
@@ -246,7 +246,7 @@ public class PlaceCandidateService {
                 .map(place -> scorePlace(place,locations))
                 .filter(score -> !excludePlaceNames.contains(score.place().placeName())) //이미 후보로 있는 장소는 제외함
                 .min(Comparator.comparingDouble(CandidateScore::avgDistance))
-                .orElseThrow(()-> new IllegalStateException("교체할 후보를 찾을 수 없습니다"));
+                .orElseThrow(()-> new IllegalStateException("교체할 후보를 찾지 못했어요."));
 
         /* 재교체 순서: 반응(deleteByCandidate)·투표(deleteByCandidateId) 먼저 지우고 → 후보 지우고(delete) → 새 후보 저장(save).
         순서가 중요함 — CandidateReaction, Vote가 둘 다 candidate_id로 이 후보를 참조하고 있어서,

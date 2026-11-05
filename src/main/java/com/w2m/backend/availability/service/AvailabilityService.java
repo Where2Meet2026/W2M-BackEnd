@@ -26,7 +26,7 @@ public class AvailabilityService {
     @Transactional
     public void saveAvailabilities(Long participantId, SaveAvailabilityRequest request) {
         Participant participant = participantRepository.findById(participantId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 참여자입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("참여자를 찾을 수 없어요."));
 
         // 1. 기존 데이터 삭제 (덮어쓰기 방식)
         availabilityRepository.deleteByParticipant(participant);
@@ -53,7 +53,7 @@ public class AvailabilityService {
     @Transactional(readOnly = true)
     public List<Availability> getAvailabilities(Long participantId) {
         Participant participant = participantRepository.findById(participantId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 참여자입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("참여자를 찾을 수 없어요."));
         
         return availabilityRepository.findByParticipant(participant);
     }

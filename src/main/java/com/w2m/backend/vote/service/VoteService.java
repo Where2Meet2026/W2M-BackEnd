@@ -35,23 +35,23 @@ public class VoteService {
         // 1. 이 모임 행을 잠그고 조회 — 이 트랜잭션이 끝날 때까지 같은 모임에 대한 다른 투표 요청은 여기서 대기
         //    (마지막 두 명이 동시에 투표해도 한 명씩 순서대로 처리되게 하려고 거는 락)
         Meeting meeting = meetingRepository.findWithLockById(meetingId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지않는 모임입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없어요."));
 
         // 이미 확정(마감)된 모임이면 더 이상 투표를 받지 않음
         if (meeting.getStatus() == Meeting.MeetingStatus.CONFIRMED) {
-            throw new IllegalStateException("이미 투표가 마감되었습니다.");
+            throw new IllegalStateException("이미 투표가 마감됐어요.");
         }
 
         // 2. 요청한 유저가 이 모임의 참여자가 맞는지 확인
         Participant participant = participantRepository.findByMeetingIdAndUserId(meetingId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("이 모임의 참가자가 아닙니다."));
+                .orElseThrow(() -> new IllegalArgumentException("이 모임의 참여자가 아니에요."));
 
         // 3. 투표하려는 후보가 실제로 존재하는 후보인지 확인
         PlaceCandidate candidate = placeCandidateRepository.findById(candidateId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 후보입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("후보를 찾을 수 없어요."));
         // 3-1.그 후보가 정말 이 모임의 후보인지 확인( 다른 모임 id로 투표하는 것 막기)
         if(!candidate.getMeeting().getId().equals(meeting.getId())) {
-            throw new IllegalArgumentException("이 모임의 후보가 아닙니다.");
+            throw new IllegalArgumentException("이 모임의 후보가 아니에요.");
         }
 
         // 4. 이 참여자가 이 모임에서 이미 투표한 적 있으면 후보만 바꾸고(변경), 처음이면 새로 저장
@@ -133,7 +133,7 @@ public class VoteService {
     public VoteStatusResponse getVoteStatus(Long meetingId, Long userId) {
 
         Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 모임입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없어요."));
 
         // 전체 참여자 수 대비 지금까지 투표한 인원, 그리고 마감(확정) 여부
         long totalParticipants = participantRepository.findByMeetingId(meetingId).size();
@@ -142,7 +142,7 @@ public class VoteService {
 
         // 요청한 유저 본인이 이 모임 참여자가 맞는지 확인 (아니면 애초에 이 정보를 볼 자격이 없음)
         Participant participant = participantRepository.findByMeetingIdAndUserId(meetingId, userId)
-                .orElseThrow(() -> new IllegalArgumentException(("이 모임의 참가자가 아닙니다.")));
+                .orElseThrow(() -> new IllegalArgumentException(("이 모임의 참여자가 아니에요.")));
 
         // 본인이 이 모임에서 누구에게 투표했는지 — 아직 투표 안 했으면 null
         Optional<Vote> myVote = voteRepository.findByMeetingIdAndParticipantId(meetingId,

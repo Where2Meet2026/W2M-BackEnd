@@ -15,7 +15,7 @@ import lombok.NoArgsConstructor;
 @NoArgsConstructor
 public class SaveLocationRequest {
 
-    @NotBlank(message = "주소는 필수입니다.")
+    @NotBlank(message = "출발 위치를 선택해주세요.")
     private String address;
 
     @NotNull(message = "위도는 필수입니다.")

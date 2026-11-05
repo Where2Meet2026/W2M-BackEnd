@@ -2,10 +2,13 @@ package com.w2m.backend.notification.dispatch;
 
 import com.w2m.backend.auth.entity.Provider;
 import com.w2m.backend.auth.entity.User;
+import com.w2m.backend.candidate.entity.PlaceCandidate;
 import com.w2m.backend.notification.entity.PushSubscription;
 import com.w2m.backend.notification.push.PushTarget;
 import com.w2m.backend.notification.repository.PushSubscriptionRepository;
 import com.w2m.backend.participant.entity.Participant;
+import com.w2m.backend.meeting.entity.Meeting;
+import com.w2m.backend.meeting.repository.MeetingRepository;
 import com.w2m.backend.participant.repository.ParticipantRepository;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +32,7 @@ class NotificationDispatchServiceTest {
 
     @Mock private ParticipantRepository participantRepository;
     @Mock private PushSubscriptionRepository pushSubscriptionRepository;
+    @Mock private MeetingRepository meetingRepository;
 
     @InjectMocks
     private NotificationDispatchService notificationDispatchService;
@@ -94,5 +98,61 @@ class NotificationDispatchServiceTest {
         notificationDispatchService.removeExpired(List.of());
 
         verify(pushSubscriptionRepository, never()).deleteByEndpointIn(anyCollection());
+    }
+
+    @Test
+    void 알림에_넣을_모임_이름을_조회한다() {
+        Meeting meeting = new Meeting(1L, "마포구 주민들", "설명", "CODE1", Meeting.PlaceCategory.CAFE);
+        when(meetingRepository.findById(MEETING_ID)).thenReturn(java.util.Optional.of(meeting));
+
+        assertThat(notificationDispatchService.findMeetingTitle(MEETING_ID)).isEqualTo("마포구 주민들");
+    }
+
+    @Test
+    void 모임이_없으면_모임_이름은_null() {
+        when(meetingRepository.findById(MEETING_ID)).thenReturn(java.util.Optional.empty());
+
+        assertThat(notificationDispatchService.findMeetingTitle(MEETING_ID)).isNull();
+    }
+
+    @Test
+    void 확정된_장소_이름을_조회한다() {
+        Meeting meeting = new Meeting(1L, "마포구 주민들", "설명", "CODE1", Meeting.PlaceCategory.CAFE);
+        meeting.confirmVote(PlaceCandidate.builder()
+                .meeting(meeting).kakaoPlaceId("kakao-1").placeName("돝고기506")
+                .address("서울").latitude(37.5).longitude(127.0)
+                .type(PlaceCandidate.CandidateType.FASTEST)
+                .avgDistanceMeters(100.0).maxDistanceMeters(100.0).build());
+        when(meetingRepository.findById(MEETING_ID)).thenReturn(java.util.Optional.of(meeting));
+
+        assertThat(notificationDispatchService.findConfirmedPlaceName(MEETING_ID)).isEqualTo("돝고기506");
+    }
+
+    @Test
+    void 아직_확정_전이면_장소_이름은_null() {
+        Meeting meeting = new Meeting(1L, "마포구 주민들", "설명", "CODE1", Meeting.PlaceCategory.CAFE);
+        when(meetingRepository.findById(MEETING_ID)).thenReturn(java.util.Optional.of(meeting));
+
+        assertThat(notificationDispatchService.findConfirmedPlaceName(MEETING_ID)).isNull();
+    }
+
+    @Test
+    void 방장의_구독_대상만_모은다() {
+        Meeting meeting = new Meeting(10L, "마포구 주민들", "설명", "CODE1", Meeting.PlaceCategory.CAFE);
+        when(meetingRepository.findById(MEETING_ID)).thenReturn(java.util.Optional.of(meeting));
+        PushSubscription hostSub = PushSubscription.builder()
+                .user(userWithId(10L)).endpoint("endpoint-host").p256dh("p-h").auth("a-h").build();
+        when(pushSubscriptionRepository.findByUserIdIn(List.of(10L))).thenReturn(List.of(hostSub));
+
+        assertThat(notificationDispatchService.collectHostTargets(MEETING_ID))
+                .containsExactly(new PushTarget("endpoint-host", "p-h", "a-h"));
+        verify(participantRepository, never()).findByMeetingId(MEETING_ID);
+    }
+
+    @Test
+    void 모임이_없으면_방장_구독_대상도_없다() {
+        when(meetingRepository.findById(MEETING_ID)).thenReturn(java.util.Optional.empty());
+
+        assertThat(notificationDispatchService.collectHostTargets(MEETING_ID)).isEmpty();
     }
 }

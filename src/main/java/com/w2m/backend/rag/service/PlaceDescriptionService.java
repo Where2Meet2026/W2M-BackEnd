@@ -11,7 +11,10 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 /**
@@ -40,6 +43,21 @@ public class PlaceDescriptionService {
         this.descriptionGenerator = descriptionGenerator;
         this.minReviews = minReviews;
         this.maxReviews = maxReviews;
+    }
+
+    /**
+     * 후보 목록 조회용. 이미 저장된 설명만 한 번에 읽어 {placeId -> 설명}으로 돌려준다.
+     * LLM은 호출하지 않으므로 목록 조회 속도에 영향이 없고, 저장된 게 없는 장소는 결과에서 빠진다.
+     */
+    public Map<String, String> findCached(Collection<String> placeIds) {
+        Map<String, String> cached = new HashMap<>();
+        if (placeIds == null || placeIds.isEmpty()) {
+            return cached;
+        }
+        for (PlaceDescription saved : placeDescriptionRepository.findByPlaceIdIn(placeIds)) {
+            cached.put(saved.getPlaceId(), saved.getDescription());
+        }
+        return cached;
     }
 
     /**

@@ -38,18 +38,18 @@ public class ParticipantService {
 
         // 초대코드로 모임 조회
         Meeting meeting = meetingRepository.findByInviteCode(request.getInviteCode())
-                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 초대코드입니다."));
+                .orElseThrow(() -> new IllegalArgumentException("초대 코드를 찾을 수 없어요."));
 
         // 유저 조회
         User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없어요."));
 
         // 이미 참여한 유저인지 확인
         boolean alreadyJoined = participantRepository
                 .existsByMeetingIdAndUserId(meeting.getId(), user.getId());
 
         if (alreadyJoined) {
-            throw new IllegalArgumentException("이미 참여한 모임입니다.");
+            throw new IllegalArgumentException("이미 참여한 모임이에요.");
         }
 
         // Participant Entity 생성
@@ -83,16 +83,16 @@ public class ParticipantService {
     @Transactional(readOnly = true)
     public ParticipantResponse getMyParticipant(Long meetingId, Long userId) {
         Participant participant = participantRepository.findByMeetingIdAndUserId(meetingId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("참여 정보가 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("참여 정보를 찾을 수 없어요."));
         boolean isVoted = voteRepository.findByMeetingIdAndParticipantId(meetingId, participant.getId()).isPresent();
         return ParticipantResponse.from(participant, isVoted);
     }
     @Transactional
     public void leaveMeeting(Long meetingId, Long userId) {
         Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new IllegalArgumentException("모임이 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없어요."));
         if (meeting.getHostUserId().equals(userId)) {
-            throw new IllegalArgumentException("방장은 나가기할 수 없습니다. 모임 삭제를 사용해주세요.");
+            throw new IllegalArgumentException("방장은 모임에서 나갈 수 없어요. 모임을 삭제해주세요.");
         }
         // 후보 장소가 하나라도 만들어졌으면 나가기를 막는다.
         // 1) 후보는 만들 때 '참여자 전원의 위치'로 계산된다. 그 뒤에 누가 나가면
@@ -105,7 +105,7 @@ public class ParticipantService {
             throw new IllegalStateException("장소 추천이 시작된 뒤에는 모임에서 나갈 수 없어요.");
         }
         Participant participant = participantRepository.findByMeetingIdAndUserId(meetingId, userId)
-                .orElseThrow(() -> new IllegalArgumentException("참여 정보가 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("참여 정보를 찾을 수 없어요."));
         // votes/candidate_reactions는 participant 쪽에 cascade가 안 걸려있어서,
         // 그대로 두고 participant를 지우면 FK 위반이 남. 그래서 먼저 직접 지워줌
         voteRepository.deleteByParticipantId(participant.getId());

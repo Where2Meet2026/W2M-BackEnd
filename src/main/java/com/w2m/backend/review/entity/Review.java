@@ -54,9 +54,9 @@ public class Review {
     @Column(name = "meeting_id", nullable = false)
     private Long meetingId;
 
-    // 별점 1~5 (범위 검증은 요청 DTO에서 처리).
+    // 별점 0.5~5.0, 0.5 단위 (범위·단위 검증은 요청 DTO에서 처리).
     @Column(nullable = false)
-    private Integer rating;
+    private Double rating;
 
     @Column(columnDefinition = "TEXT")
     private String comment;
@@ -66,7 +66,7 @@ public class Review {
 
     @Builder
     public Review(User user, String placeId, String placeName, String placeAddress,
-                  Long meetingId, Integer rating, String comment) {
+                  Long meetingId, Double rating, String comment) {
         this.user = user;
         this.placeId = placeId;
         this.placeName = placeName;

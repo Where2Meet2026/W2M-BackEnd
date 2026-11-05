@@ -85,7 +85,7 @@ class MeetingServiceTest {
 
         assertThatThrownBy(() -> meetingService.confirmMeetingTime(MEETING_ID, request(), HOST_ID))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("이미 최종 확정된 모임입니다.");
+                .hasMessage("이미 확정된 모임이에요.");
 
         assertThat(meeting.getStatus()).isEqualTo(Meeting.MeetingStatus.CONFIRMED);
         assertThat(meeting.getConfirmedStartDateTime()).isEqualTo(OLD_START);
@@ -100,7 +100,7 @@ class MeetingServiceTest {
 
         assertThatThrownBy(() -> meetingService.confirmMeetingTime(MEETING_ID, request(), 999L))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("방장만 약속 시간을 확정할 수 있습니다.");
+                .hasMessage("방장만 시간을 확정할 수 있어요.");
 
         verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
@@ -111,6 +111,6 @@ class MeetingServiceTest {
 
         assertThatThrownBy(() -> meetingService.confirmMeetingTime(MEETING_ID, request(), HOST_ID))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("모임이 존재하지 않습니다.");
+                .hasMessage("모임을 찾을 수 없어요.");
     }
 }

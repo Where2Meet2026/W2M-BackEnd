@@ -7,6 +7,7 @@ import com.w2m.backend.meeting.dto.request.UpdateMeetingStatusRequest;
 import com.w2m.backend.meeting.dto.response.FinalSelectionResponse;
 import com.w2m.backend.meeting.dto.response.MeetingResponse;
 import com.w2m.backend.meeting.service.MeetingService;
+import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.web.bind.annotation.*;
@@ -23,7 +24,7 @@ public class MeetingController {
 
     @PostMapping
     public MeetingResponse createMeeting(
-            @RequestBody CreateMeetingRequest request,
+            @Valid @RequestBody CreateMeetingRequest request,
             @AuthenticationPrincipal CustomUserDetails userDetails
     ) {
         Long userId = userDetails.getUser().getId();

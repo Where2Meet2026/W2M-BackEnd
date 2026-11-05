@@ -15,7 +15,7 @@ import java.util.List;
 @NoArgsConstructor
 public class SaveAvailabilityRequest {
     
-    @NotEmpty(message = "최소 하나 이상의 시간대를 선택해야 합니다.")
+    @NotEmpty(message = "시간대를 하나 이상 선택해주세요.")
     private List<TimeRangeRequest> timeRanges;
 
     @Getter

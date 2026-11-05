@@ -57,7 +57,7 @@ public class MeetingService {
         Meeting savedMeeting = meetingRepository.save(meeting);
 
         com.w2m.backend.auth.entity.User user = userRepository.findById(userId)
-                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("사용자를 찾을 수 없어요."));
 
         Participant hostParticipant = new Participant(
                 savedMeeting,
@@ -71,7 +71,7 @@ public class MeetingService {
     public MeetingResponse getMeeting(Long meetingId, Long userId){
 
         Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new IllegalArgumentException("모임이 존재하지않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없어요."));
 
         String role = meeting.getHostUserId().equals(userId) ? "HOST" : "PARTICIPANT";
         return MeetingResponse.from(meeting, role);
@@ -115,7 +115,7 @@ public class MeetingService {
     public MeetingResponse updateMeetingStatus(Long meetingId, UpdateMeetingStatusRequest request, Long userId){
 
         Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow( ()-> new IllegalArgumentException("모임이 존재하지 않습니다."));
+                .orElseThrow( ()-> new IllegalArgumentException("모임을 찾을 수 없어요."));
 
         meeting.updateStatus(request.getStatus());
 
@@ -126,9 +126,9 @@ public class MeetingService {
     @Transactional
     public void deleteMeeting(Long meetingId, Long userId){
         Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new IllegalArgumentException("모임이 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없어요."));
         if (!meeting.getHostUserId().equals(userId)) {
-            throw new IllegalArgumentException("방장만 모임을 삭제할 수 있습니다.");
+            throw new IllegalArgumentException("방장만 모임을 삭제할 수 있어요.");
         }
         
         // votes/candidate_reactions/place_candidates는 Participant와 달리 cascade가 안 걸려있어서,
@@ -144,7 +144,7 @@ public class MeetingService {
     }
     public MeetingResponse getMeetingByInviteCode(String inviteCode){
         Meeting meeting = meetingRepository.findByInviteCode(inviteCode)
-                .orElseThrow(()-> new IllegalArgumentException("초대 코드에 해당하는 방이 없습니다."));
+                .orElseThrow(()-> new IllegalArgumentException("초대 코드에 해당하는 모임이 없어요."));
         // 로그인 없이도 호출되는 공개 API라 role을 판단할 사용자가 없음
         return MeetingResponse.from(meeting, null);
     }
@@ -155,15 +155,15 @@ public class MeetingService {
             Long userId
     ) {
         Meeting meeting = meetingRepository.findById(meetingId)
-                .orElseThrow(() -> new IllegalArgumentException("모임이 존재하지 않습니다."));
+                .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없어요."));
 
         if (!meeting.getHostUserId().equals(userId)) {
-            throw new IllegalArgumentException("방장만 약속 시간을 확정할 수 있습니다.");
+            throw new IllegalArgumentException("방장만 시간을 확정할 수 있어요.");
         }
 
         // 투표로 장소까지 최종 확정된 뒤에 시간을 다시 확정하면 상태가 되돌아가므로 막는다.
         if (meeting.getStatus() == Meeting.MeetingStatus.CONFIRMED) {
-            throw new IllegalStateException("이미 최종 확정된 모임입니다.");
+            throw new IllegalStateException("이미 확정된 모임이에요.");
         }
 
         meeting.confirmTime(request.getStartDateTime(), request.getEndDateTime());
@@ -177,12 +177,12 @@ public class MeetingService {
     @Transactional(readOnly = true)
     public FinalSelectionResponse getFinalSelection(Long meetingId, Long userId) {
         Meeting meeting = meetingRepository.findById(meetingId)
-                        .orElseThrow(() -> new IllegalArgumentException("모임이 존재하지 않습니다."));
+                        .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없어요."));
         if(!participantRepository.existsByMeetingIdAndUserId( meetingId, userId)){
-            throw new IllegalArgumentException("이 모임의 참여자가 아닙니다.");
+            throw new IllegalArgumentException("이 모임의 참여자가 아니에요.");
         }
         if (meeting.getConfirmedCandidate() == null) {
-            throw new IllegalStateException("아직 확정되지 않았습니다.");
+            throw new IllegalStateException("아직 확정되지 않았어요.");
         }
         return FinalSelectionResponse.from(meeting);
     }

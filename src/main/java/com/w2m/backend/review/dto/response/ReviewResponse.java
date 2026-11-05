@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 @Builder
 public class ReviewResponse {
 
-    private Integer rating;
+    private Double rating;
     private String comment;
     private LocalDateTime createdAt;
 

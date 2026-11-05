@@ -5,6 +5,7 @@ import com.w2m.backend.candidate.entity.PlaceCandidate;
 import com.w2m.backend.candidate.repository.CandidateReactionRepository;
 import com.w2m.backend.candidate.repository.PlaceCandidateRepository;
 import com.w2m.backend.meeting.entity.Meeting;
+import com.w2m.backend.meeting.event.MeetingPlaceConfirmedEvent;
 import com.w2m.backend.meeting.repository.MeetingRepository;
 import com.w2m.backend.participant.entity.Participant;
 import com.w2m.backend.participant.repository.ParticipantRepository;
@@ -13,6 +14,7 @@ import com.w2m.backend.vote.dto.response.VoteStatusResponse;
 import com.w2m.backend.vote.entity.Vote;
 import com.w2m.backend.vote.repository.VoteRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -28,6 +30,7 @@ public class VoteService {
     private final PlaceCandidateRepository placeCandidateRepository;
     private final VoteRepository voteRepository;
     private final CandidateReactionRepository candidateReactionRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     // 후보 하나에 최종 투표(또는 변경). 반환값은 "이 요청으로 투표가 마감·확정됐는지" 여부
     @Transactional
@@ -125,6 +128,9 @@ public class VoteService {
 
         // 모든 후보를 다 비교해서 최종 winner가 정해진 뒤에, 이 모임을 그 후보로 확정
         meeting.confirmVote(winner);
+
+        // 커밋 후 참여자 전원에게 장소 확정 알림 발송 (NotificationEventListener)
+        eventPublisher.publishEvent(new MeetingPlaceConfirmedEvent(meetingId));
         return true;
     }
     // 투표 현황 조회 — 데이터를 바꾸지 않는 읽기 전용이라 락(findWithLockById)은 안 쓰고

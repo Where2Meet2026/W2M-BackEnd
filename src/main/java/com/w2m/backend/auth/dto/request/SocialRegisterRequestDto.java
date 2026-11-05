@@ -21,16 +21,12 @@ public class SocialRegisterRequestDto {
     @NotBlank(message = "제공자 식별 번호는 필수입니다.")
     private String providerId;
 
-    @NotBlank(message = "전화번호는 필수입니다.")
-    private String phoneNumber;
-
     public User toEntity() {
         return User.builder()
                 .email(email)
                 .name(name)
                 .provider(Provider.KAKAO)
                 .providerId(providerId)
-                .phoneNumber(phoneNumber)
                 .build();
     }
 }

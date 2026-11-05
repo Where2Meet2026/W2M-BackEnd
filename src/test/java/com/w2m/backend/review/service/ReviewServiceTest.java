@@ -25,6 +25,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
 import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -50,6 +51,7 @@ class ReviewServiceTest {
 
     private static final Long MEETING_ID = 1L;
     private static final Long USER_ID = 10L;
+    private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
 
     private PlaceCandidate confirmedCandidate() {
         return PlaceCandidate.builder()
@@ -68,6 +70,9 @@ class ReviewServiceTest {
         Meeting meeting = new Meeting(99L, "테스트 모임", "설명", "INVITE1", Meeting.PlaceCategory.CAFE);
         meeting.setStatus(status);
         meeting.setConfirmedCandidate(confirmedCandidate);
+        // 기본은 이미 끝난 약속 (리뷰 작성 가능 시점)
+        meeting.setConfirmedStartDateTime(LocalDateTime.now(KOREA).minusHours(3));
+        meeting.setConfirmedEndDateTime(LocalDateTime.now(KOREA).minusHours(1));
         return meeting;
     }
 
@@ -80,11 +85,28 @@ class ReviewServiceTest {
     }
 
     @Test
+    void 반점_별점도_소수점_그대로_저장한다() {
+        Meeting meeting = meetingWithStatus(Meeting.MeetingStatus.CONFIRMED, confirmedCandidate());
+
+        when(meetingRepository.findById(MEETING_ID)).thenReturn(Optional.of(meeting));
+        when(participantRepository.existsByMeetingIdAndUserId(MEETING_ID, USER_ID)).thenReturn(true);
+        when(reviewRepository.existsByPlaceIdAndUserId("kakao-1", USER_ID)).thenReturn(false);
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user()));
+        when(reviewRepository.saveAndFlush(any(Review.class))).thenAnswer(invocation -> invocation.getArgument(0));
+
+        reviewService.createReview(MEETING_ID, new CreateReviewRequest(3.5, "무난했어요"), USER_ID);
+
+        ArgumentCaptor<Review> captor = ArgumentCaptor.forClass(Review.class);
+        verify(reviewRepository).saveAndFlush(captor.capture());
+        assertThat(captor.getValue().getRating()).isEqualTo(3.5);
+    }
+
+    @Test
     void 확정된_모임이면_리뷰를_생성한다() {
         PlaceCandidate candidate = confirmedCandidate();
         Meeting meeting = meetingWithStatus(Meeting.MeetingStatus.CONFIRMED, candidate);
         User user = user();
-        CreateReviewRequest request = new CreateReviewRequest(5, "조용하고 좋았어요");
+        CreateReviewRequest request = new CreateReviewRequest(5.0, "조용하고 좋았어요");
 
         when(meetingRepository.findById(MEETING_ID)).thenReturn(Optional.of(meeting));
         when(participantRepository.existsByMeetingIdAndUserId(MEETING_ID, USER_ID)).thenReturn(true);
@@ -107,7 +129,7 @@ class ReviewServiceTest {
         assertThat(saved.getPlaceName()).isEqualTo("감성 루프탑 카페");
         assertThat(saved.getPlaceAddress()).isEqualTo("서울 강남구");
         assertThat(saved.getMeetingId()).isEqualTo(MEETING_ID);
-        assertThat(saved.getRating()).isEqualTo(5);
+        assertThat(saved.getRating()).isEqualTo(5.0);
         assertThat(saved.getComment()).isEqualTo("조용하고 좋았어요");
         assertThat(saved.getUser()).isEqualTo(user);
 
@@ -123,7 +145,7 @@ class ReviewServiceTest {
         when(meetingRepository.findById(MEETING_ID)).thenReturn(Optional.empty());
 
         assertThatThrownBy(() ->
-                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5, "좋아요"), USER_ID))
+                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5.0, "좋아요"), USER_ID))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("존재하지 않는 모임입니다.");
 
@@ -137,7 +159,7 @@ class ReviewServiceTest {
         when(participantRepository.existsByMeetingIdAndUserId(MEETING_ID, USER_ID)).thenReturn(false);
 
         assertThatThrownBy(() ->
-                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5, "좋아요"), USER_ID))
+                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5.0, "좋아요"), USER_ID))
                 .isInstanceOf(IllegalArgumentException.class)
                 .hasMessage("이 모임의 참여자가 아닙니다.");
 
@@ -151,9 +173,40 @@ class ReviewServiceTest {
         when(participantRepository.existsByMeetingIdAndUserId(MEETING_ID, USER_ID)).thenReturn(true);
 
         assertThatThrownBy(() ->
-                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5, "좋아요"), USER_ID))
+                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5.0, "좋아요"), USER_ID))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("아직 확정되지 않은 모임입니다.");
+
+        verify(reviewRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void 약속이_아직_끝나지_않았으면_리뷰를_쓸_수_없다() {
+        Meeting meeting = meetingWithStatus(Meeting.MeetingStatus.CONFIRMED, confirmedCandidate());
+        meeting.setConfirmedStartDateTime(LocalDateTime.now(KOREA).minusMinutes(30));
+        meeting.setConfirmedEndDateTime(LocalDateTime.now(KOREA).plusMinutes(30)); // 약속 진행 중
+        when(meetingRepository.findById(MEETING_ID)).thenReturn(Optional.of(meeting));
+        when(participantRepository.existsByMeetingIdAndUserId(MEETING_ID, USER_ID)).thenReturn(true);
+
+        assertThatThrownBy(() ->
+                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5.0, "좋아요"), USER_ID))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("약속이 끝난 뒤에 리뷰를 쓸 수 있어요.");
+
+        verify(reviewRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void 약속_시간이_없는_확정_모임도_리뷰를_쓸_수_없다() {
+        Meeting meeting = meetingWithStatus(Meeting.MeetingStatus.CONFIRMED, confirmedCandidate());
+        meeting.setConfirmedEndDateTime(null);
+        when(meetingRepository.findById(MEETING_ID)).thenReturn(Optional.of(meeting));
+        when(participantRepository.existsByMeetingIdAndUserId(MEETING_ID, USER_ID)).thenReturn(true);
+
+        assertThatThrownBy(() ->
+                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5.0, "좋아요"), USER_ID))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("약속이 끝난 뒤에 리뷰를 쓸 수 있어요.");
 
         verify(reviewRepository, never()).saveAndFlush(any());
     }
@@ -167,7 +220,7 @@ class ReviewServiceTest {
         when(reviewRepository.existsByPlaceIdAndUserId("kakao-1", USER_ID)).thenReturn(true);
 
         assertThatThrownBy(() ->
-                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5, "좋아요"), USER_ID))
+                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5.0, "좋아요"), USER_ID))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("이미 이 장소에 리뷰를 작성했습니다.");
 
@@ -186,7 +239,7 @@ class ReviewServiceTest {
         when(reviewRepository.saveAndFlush(any(Review.class))).thenThrow(new DataIntegrityViolationException("duplicate"));
 
         assertThatThrownBy(() ->
-                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5, "좋아요"), USER_ID))
+                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5.0, "좋아요"), USER_ID))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("이미 이 장소에 리뷰를 작성했습니다.");
 
@@ -207,9 +260,9 @@ class ReviewServiceTest {
         List<ReviewResponse> responses = reviewService.getReviews(MEETING_ID, USER_ID);
 
         assertThat(responses).hasSize(2);
-        assertThat(responses.get(0).getRating()).isEqualTo(5);
+        assertThat(responses.get(0).getRating()).isEqualTo(5.0);
         assertThat(responses.get(0).getComment()).isEqualTo("최고였어요");
-        assertThat(responses.get(1).getRating()).isEqualTo(3);
+        assertThat(responses.get(1).getRating()).isEqualTo(3.0);
     }
 
     @Test
@@ -261,7 +314,7 @@ class ReviewServiceTest {
 
         assertThat(response.getPlaceName()).isEqualTo("감성 루프탑 카페");
         assertThat(response.getReviews()).hasSize(1);
-        assertThat(response.getReviews().get(0).getRating()).isEqualTo(4);
+        assertThat(response.getReviews().get(0).getRating()).isEqualTo(4.0);
     }
 
     @Test
@@ -289,7 +342,7 @@ class ReviewServiceTest {
         verify(placeCandidateRepository, never()).findByMeetingId(any());
     }
 
-    private Review buildPersistedReview(int rating, String comment, LocalDateTime createdAt) {
+    private Review buildPersistedReview(double rating, String comment, LocalDateTime createdAt) {
         Review review = Review.builder()
                 .user(user())
                 .placeId("kakao-1")

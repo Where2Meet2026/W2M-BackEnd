@@ -19,11 +19,15 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.List;
 
 @Service
 @RequiredArgsConstructor
 public class ReviewService {
+
+    private static final ZoneId KOREA = ZoneId.of("Asia/Seoul");
 
     private final ReviewRepository reviewRepository;
     private final MeetingRepository meetingRepository;
@@ -44,6 +48,12 @@ public class ReviewService {
         // 투표로 확정된 장소가 있어야만(= 모임이 CONFIRMED여야만) 리뷰를 쓸 수 있다.
         if (meeting.getStatus() != Meeting.MeetingStatus.CONFIRMED) {
             throw new IllegalStateException("아직 확정되지 않은 모임입니다.");
+        }
+
+        // 다녀온 뒤에만 리뷰를 쓸 수 있다. 약속 시간은 사용자가 한국 시간으로 고른 값이라 서버 시간대와 무관하게 한국 시간으로 비교한다.
+        LocalDateTime endDateTime = meeting.getConfirmedEndDateTime();
+        if (endDateTime == null || LocalDateTime.now(KOREA).isBefore(endDateTime)) {
+            throw new IllegalStateException("약속이 끝난 뒤에 리뷰를 쓸 수 있어요.");
         }
 
         PlaceCandidate confirmedPlace = meeting.getConfirmedCandidate();

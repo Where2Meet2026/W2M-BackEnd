@@ -21,18 +21,20 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
 
     @Value("${JWT_SECRET_KEY}")
     private String secretKey;
+    @Value("${app.frontend-url}")
+    private String frontendUrl;
 
     @Override
     public void onAuthenticationSuccess(HttpServletRequest request, HttpServletResponse response,
                                         Authentication authentication) throws IOException, ServletException {
-        
+
         // 1. 유저 정보 추출
         CustomUserDetails userDetails = (CustomUserDetails) authentication.getPrincipal();
         User user = userDetails.getUser();
 
         // [신규 유저인 경우] - 아직 DB에 저장되지 않음 (id가 null)
         if (user.getId() == null) {
-            String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/kakao-callback")
+            String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/kakao-callback")
                     .queryParam("isNew", "true")
                     .queryParam("email", user.getEmail())
                     .queryParam("name", user.getName())
@@ -47,7 +49,7 @@ public class OAuth2SuccessHandler extends SimpleUrlAuthenticationSuccessHandler 
         long expireTimeMs = 1000 * 60 * 60;
         String jwtToken = JwtTokenUtil.createToken(user.getId(), secretKey, expireTimeMs);
 
-        String targetUrl = UriComponentsBuilder.fromUriString("http://localhost:5173/kakao-callback")
+        String targetUrl = UriComponentsBuilder.fromUriString(frontendUrl + "/kakao-callback")
                 .queryParam("token", jwtToken)
                 .build().toUriString();
 

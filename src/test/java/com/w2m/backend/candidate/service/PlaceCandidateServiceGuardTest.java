@@ -149,7 +149,7 @@ class PlaceCandidateServiceGuardTest {
         // 식당·카페 코드마다 한 곳씩, 모두 2곳
         when(kakaoLocalApiClient.searchByCategory(anyDouble(), anyDouble(), anyInt(), anyString()))
                 .thenReturn(new KakaoLocalSearchResponse(List.of(
-                        new KakaoLocalSearchResponse.KakaoPlaceDto("1", "가게1", "주소1", "음식점", "127.001", "37.501"))));
+                        new KakaoLocalSearchResponse.KakaoPlaceDto("1", "가게1", "주소1", "음식점", "FD6", "127.001", "37.501"))));
 
         assertThatThrownBy(() -> service.getCandidates(MEETING_ID, USER_ID))
                 .isInstanceOf(IllegalStateException.class)

@@ -148,7 +148,6 @@ public class PlaceCandidateService {
     /* 후보에 저장하는 기본 설명 — 우리가 계산한 실제 거리로만 구성 (예: "평균 265m · 가장 빠른 동선").
     리뷰가 충분히 쌓인 장소는 조회할 때 rag 패키지의 AI 설명이 이 문구 대신 내려간다. */
     private String buildDescription(PlaceCandidate.CandidateType type, CandidateScore score) {
-        return DefaultDescriptionFormatter.format(type, score.avgDistance());
         // 대중교통 시간을 구했으면 "평균 N분", 못 구했으면 기존처럼 "평균 Nm"
         String measure = score.avgMinutes() != null
                 ? "평균 " + score.avgMinutes() + "분"

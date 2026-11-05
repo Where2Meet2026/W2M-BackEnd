@@ -16,7 +16,6 @@ public class RegisterRequestDto {
     private String password;
     //private String passwordCheck; // 비밀번호 확인용 (DB 저장 X)
     private String name;
-    private String phoneNumber;
 
 
     //비밀번호 단방향 해시
@@ -25,7 +24,6 @@ public class RegisterRequestDto {
                 .email(this.email)
                 .password(encodedPassword)
                 .name(this.name)
-                .phoneNumber(this.phoneNumber)
                 .provider(Provider.LOCAL) // 일반 회원가입이므로 LOCAL 고정
                 .build();
     }

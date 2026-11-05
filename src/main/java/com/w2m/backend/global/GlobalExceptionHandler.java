@@ -2,8 +2,10 @@ package com.w2m.backend.global;
 
 import lombok.Builder;
 import lombok.Getter;
+import org.springframework.context.support.DefaultMessageSourceResolvable;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.bind.annotation.RestControllerAdvice;
 
@@ -37,6 +39,24 @@ public class GlobalExceptionHandler {
                 .build();
 
         return ResponseEntity.status(HttpStatus.CONFLICT).body(response);
+    }
+
+    // @Valid 검증 실패 시 400. 기본 응답("Validation failed for object=...") 대신 DTO에 적은 안내 문구를 그대로 내려준다.
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<ErrorResponse> handleValidationException(MethodArgumentNotValidException e) {
+        String message = e.getBindingResult().getAllErrors().stream()
+                .findFirst()
+                .map(DefaultMessageSourceResolvable::getDefaultMessage)
+                .orElse("요청 값이 올바르지 않습니다.");
+
+        ErrorResponse response = ErrorResponse.builder()
+                .timestamp(LocalDateTime.now())
+                .status(HttpStatus.BAD_REQUEST.value())
+                .error(HttpStatus.BAD_REQUEST.name())
+                .message(message)
+                .build();
+
+        return ResponseEntity.badRequest().body(response);
     }
 
     @Getter

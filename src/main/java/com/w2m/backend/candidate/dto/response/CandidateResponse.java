@@ -25,6 +25,12 @@ public class CandidateResponse {
 
     public static CandidateResponse of(PlaceCandidate candidate, long likeCount,
    long dislikeCount, CandidateReaction.ReactionType myReaction) {
+        return of(candidate, likeCount, dislikeCount, myReaction, candidate.getDescription());
+    }
+
+    // 리뷰 기반 AI 설명이 있으면 후보에 저장된 기본 문구 대신 그 설명을 내려준다.
+    public static CandidateResponse of(PlaceCandidate candidate, long likeCount,
+   long dislikeCount, CandidateReaction.ReactionType myReaction, String description) {
         return CandidateResponse.builder()
                 .candidateId(candidate.getId())
                 .placeName(candidate.getPlaceName())
@@ -35,6 +41,7 @@ public class CandidateResponse {
                 .avgTravelMinutes(candidate.getAvgTravelMinutes())
                 .maxTravelMinutes(candidate.getMaxTravelMinutes())
                 .description(candidate.getDescription())
+                .description(description)
                 .likeCount(likeCount)
                 .dislikeCount(dislikeCount)
                 .myReaction(myReaction)

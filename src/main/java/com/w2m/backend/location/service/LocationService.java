@@ -4,9 +4,12 @@ import com.w2m.backend.location.dto.request.SaveLocationRequest;
 import com.w2m.backend.location.dto.response.LocationResponse;
 import com.w2m.backend.location.entity.ParticipantLocation;
 import com.w2m.backend.location.repository.ParticipantLocationRepository;
+import com.w2m.backend.meeting.event.MeetingLocationsCompletedEvent;
+import com.w2m.backend.meeting.repository.MeetingRepository;
 import com.w2m.backend.participant.entity.Participant;
 import com.w2m.backend.participant.repository.ParticipantRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -16,6 +19,8 @@ public class LocationService {
 
     private final ParticipantLocationRepository participantLocationRepository;
     private final ParticipantRepository participantRepository;
+    private final MeetingRepository meetingRepository;
+    private final ApplicationEventPublisher eventPublisher;
 
     /**
      * 참여자의 출발 위치를 저장합니다.
@@ -31,6 +36,13 @@ public class LocationService {
             throw new IllegalArgumentException("내 위치만 등록할 수 있어요.");
         }
 
+        // 같은 모임의 위치 저장을 한 건씩 처리해서, 마지막 입력자를 정확히 한 번만 판정한다.
+        // (참여자 행을 고치기 전에 잠가야 동시에 입력한 두 사람이 서로를 기다리는 교착이 생기지 않는다)
+        Long meetingId = participant.getMeeting().getId();
+        meetingRepository.findWithLockById(meetingId)
+                .orElseThrow(() -> new IllegalArgumentException("존재하지 않는 모임입니다."));
+        boolean wasLocationSelected = participant.isLocationSelected();
+
         participantLocationRepository.findByParticipant(participant)
                 .ifPresentOrElse(
                         location -> location.update(
@@ -45,6 +57,17 @@ public class LocationService {
 
         participant.updateLocationSelected(true);
         participantRepository.save(participant);
+
+        // 이번 입력으로 전원의 위치가 모였으면 커밋 후 투표 안내 알림 발송 (NotificationEventListener).
+        // 이미 입력했던 사람이 위치만 바꾸는 경우에는 다시 보내지 않는다.
+        if (!wasLocationSelected && allLocationsSelected(meetingId)) {
+            eventPublisher.publishEvent(new MeetingLocationsCompletedEvent(meetingId));
+        }
+    }
+
+    private boolean allLocationsSelected(Long meetingId) {
+        return participantRepository.findLatestByMeetingId(meetingId).stream()
+                .allMatch(Participant::isLocationSelected);
     }
 
     /**

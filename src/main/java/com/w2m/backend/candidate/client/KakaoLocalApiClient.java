@@ -7,6 +7,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.ResponseEntity;
 import org.springframework.stereotype.Component;
+import org.springframework.http.client.SimpleClientHttpRequestFactory;
 import org.springframework.web.client.RestTemplate;
 
 @Component
@@ -15,7 +16,15 @@ public class KakaoLocalApiClient {
     @Value("${KAKAO_REST_API_KEY}") // 카카오 로그인용 KAKAO_CLIENT_ID 와는 다른 키 (로컬 장소검색 API 전용)
     private String restApiKey;
 
-    private final RestTemplate restTemplate = new RestTemplate();
+    private final RestTemplate restTemplate = createRestTemplate();
+
+    // 후보 생성은 모임 행을 잠근 채 이 API를 부르므로, 응답이 없을 때 무한정 기다리지 않도록 제한 시간을 둔다.
+    private static RestTemplate createRestTemplate() {
+        SimpleClientHttpRequestFactory factory = new SimpleClientHttpRequestFactory();
+        factory.setConnectTimeout(3000);
+        factory.setReadTimeout(5000);
+        return new RestTemplate(factory);
+    }
 
     public String searchByKeyword(String keyword) {
         String url = "https://dapi.kakao.com/v2/local/search/keyword.json?query=" + keyword;

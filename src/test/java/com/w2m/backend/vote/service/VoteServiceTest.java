@@ -156,6 +156,6 @@ public class VoteServiceTest {
         assertThatThrownBy(() ->
                 voteService.castVote(myMeeting.getId(), otherCandidate.getId(), userA.getId()))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("이 모임의 후보가 아닙니다.");
+                .hasMessage("이 모임의 후보가 아니에요.");
     }
 }

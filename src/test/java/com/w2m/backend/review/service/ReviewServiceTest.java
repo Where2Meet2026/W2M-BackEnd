@@ -125,7 +125,7 @@ class ReviewServiceTest {
         assertThatThrownBy(() ->
                 reviewService.createReview(MEETING_ID, new CreateReviewRequest(5, "좋아요"), USER_ID))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("존재하지 않는 모임입니다.");
+                .hasMessage("모임을 찾을 수 없어요.");
 
         verify(reviewRepository, never()).saveAndFlush(any());
     }
@@ -139,7 +139,7 @@ class ReviewServiceTest {
         assertThatThrownBy(() ->
                 reviewService.createReview(MEETING_ID, new CreateReviewRequest(5, "좋아요"), USER_ID))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("이 모임의 참여자가 아닙니다.");
+                .hasMessage("이 모임의 참여자가 아니에요.");
 
         verify(reviewRepository, never()).saveAndFlush(any());
     }
@@ -153,7 +153,7 @@ class ReviewServiceTest {
         assertThatThrownBy(() ->
                 reviewService.createReview(MEETING_ID, new CreateReviewRequest(5, "좋아요"), USER_ID))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("아직 확정되지 않은 모임입니다.");
+                .hasMessage("아직 확정되지 않은 모임이에요.");
 
         verify(reviewRepository, never()).saveAndFlush(any());
     }
@@ -169,7 +169,7 @@ class ReviewServiceTest {
         assertThatThrownBy(() ->
                 reviewService.createReview(MEETING_ID, new CreateReviewRequest(5, "좋아요"), USER_ID))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("이미 이 장소에 리뷰를 작성했습니다.");
+                .hasMessage("이미 이 장소에 리뷰를 썼어요.");
 
         verify(reviewRepository, never()).saveAndFlush(any());
         verify(userRepository, never()).findById(anyLong());
@@ -188,7 +188,7 @@ class ReviewServiceTest {
         assertThatThrownBy(() ->
                 reviewService.createReview(MEETING_ID, new CreateReviewRequest(5, "좋아요"), USER_ID))
                 .isInstanceOf(IllegalStateException.class)
-                .hasMessage("이미 이 장소에 리뷰를 작성했습니다.");
+                .hasMessage("이미 이 장소에 리뷰를 썼어요.");
 
         verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
@@ -229,7 +229,7 @@ class ReviewServiceTest {
 
         assertThatThrownBy(() -> reviewService.getReviews(MEETING_ID, USER_ID))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("존재하지 않는 모임입니다.");
+                .hasMessage("모임을 찾을 수 없어요.");
 
         verify(reviewRepository, never()).findByPlaceIdOrderByCreatedAtDesc(any());
     }
@@ -242,7 +242,7 @@ class ReviewServiceTest {
 
         assertThatThrownBy(() -> reviewService.getReviews(MEETING_ID, USER_ID))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("이 모임의 참여자가 아닙니다.");
+                .hasMessage("이 모임의 참여자가 아니에요.");
 
         verify(reviewRepository, never()).findByPlaceIdOrderByCreatedAtDesc(any());
     }
@@ -272,7 +272,7 @@ class ReviewServiceTest {
 
         assertThatThrownBy(() -> reviewService.getCandidateReviews(MEETING_ID, 7L, USER_ID))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("존재하지 않는 후보입니다.");
+                .hasMessage("후보를 찾을 수 없어요.");
 
         verify(reviewRepository, never()).findByPlaceIdOrderByCreatedAtDesc(any());
     }
@@ -284,7 +284,7 @@ class ReviewServiceTest {
 
         assertThatThrownBy(() -> reviewService.getCandidateReviews(MEETING_ID, 7L, USER_ID))
                 .isInstanceOf(IllegalArgumentException.class)
-                .hasMessage("이 모임의 참여자가 아닙니다.");
+                .hasMessage("이 모임의 참여자가 아니에요.");
 
         verify(placeCandidateRepository, never()).findByMeetingId(any());
     }

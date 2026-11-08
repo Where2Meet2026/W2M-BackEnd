@@ -4,6 +4,7 @@ package com.w2m.backend.meeting.service;
 import com.w2m.backend.candidate.entity.CandidateReaction;
 import com.w2m.backend.candidate.repository.CandidateReactionRepository;
 import com.w2m.backend.candidate.repository.PlaceCandidateRepository;
+import com.w2m.backend.candidate.repository.RejectedPlaceRepository;
 import com.w2m.backend.meeting.dto.request.ConfirmMeetingTimeRequest;
 import com.w2m.backend.meeting.dto.request.CreateMeetingRequest;
 import com.w2m.backend.meeting.dto.request.UpdateMeetingStatusRequest;
@@ -38,6 +39,7 @@ public class MeetingService {
     private final VoteRepository voteRepository;
     private final CandidateReactionRepository candidateReactionRepository;
     private final PlaceCandidateRepository placeCandidateRepository;
+    private final RejectedPlaceRepository rejectedPlaceRepository;
     private final ReviewRepository reviewRepository;
 
     public MeetingResponse createMeeting(
@@ -137,6 +139,7 @@ public class MeetingService {
         voteRepository.deleteByMeetingId(meetingId);
         candidateReactionRepository.deleteByCandidate_Meeting_Id(meetingId);
         placeCandidateRepository.deleteByMeetingId(meetingId);
+        rejectedPlaceRepository.deleteByMeetingId(meetingId);
 
         // CascadeType.ALL 설정으로 인해 meeting 삭제 시
         // 하위 participants와 그 하위 availabilities/locations가 모두 자동 삭제됩니다.

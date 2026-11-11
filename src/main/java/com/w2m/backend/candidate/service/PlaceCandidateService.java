@@ -21,6 +21,7 @@ import com.w2m.backend.participant.repository.ParticipantRepository;
 import com.w2m.backend.rag.service.PlaceDescriptionService;
 import com.w2m.backend.vote.repository.VoteRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import com.w2m.backend.candidate.dto.response.KakaoLocalSearchResponse.KakaoPlaceDto;
@@ -47,6 +48,11 @@ public class PlaceCandidateService {
 
     private static final int SEARCH_RADIUS_METERS = 1500;
     private final ParticipantRepository participantRepository;
+
+    // 후보로 쓸 수 있는 카카오 장소 ID(쉼표로 구분). 시연처럼 후보를 정해 두고 싶을 때만 채운다.
+    // 비어 있으면 제한하지 않고 검색 결과를 그대로 쓴다.
+    @Value("${candidate.allowed-place-ids:}")
+    private String allowedPlaceIds;
 
     // 참여자 전원 위치의 평균 좌표 = 카카오 장소 검색의 중심점으로 사용
     public Coordinate calculateCentroid(Long meetingId){
@@ -130,11 +136,23 @@ public class PlaceCandidateService {
             case ANY -> List.of("FD6", "CE7");
         };
 
+        Set<String> allowed = allowedPlaceIdSet();
         return categoryCodes.stream()
                 .flatMap(code -> kakaoLocalApiClient.searchByCategory(
                                 centroid.latitude(), centroid.longitude(), SEARCH_RADIUS_METERS, code)
                         .documents().stream())
+                .filter(place -> allowed.isEmpty() || allowed.contains(place.placeId()))
                 .toList();
+    }
+
+    private Set<String> allowedPlaceIdSet() {
+        if (allowedPlaceIds == null || allowedPlaceIds.isBlank()) {
+            return Set.of();
+        }
+        return Arrays.stream(allowedPlaceIds.split(","))
+                .map(String::trim)
+                .filter(id -> !id.isEmpty())
+                .collect(Collectors.toSet());
     }
     private PlaceCandidate toEntity(Meeting meeting, CandidateScore score,
                                     PlaceCandidate.CandidateType type) {

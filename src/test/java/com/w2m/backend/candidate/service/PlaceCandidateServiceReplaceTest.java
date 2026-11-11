@@ -122,6 +122,20 @@ class PlaceCandidateServiceReplaceTest {
     }
 
     @Test
+    void 허용_장소가_설정되면_더_가까워도_허용되지_않은_장소는_고르지_않는다() {
+        ReflectionTestUtils.setField(service, "allowedPlaceIds", " next , far ");
+        when(rejectedPlaceRepository.findByMeetingId(MEETING_ID)).thenReturn(List.of());
+        givenSearchResult(place("closer", "127.001"), place("next", "127.002"), place("far", "127.003"));
+        givenSaveReturnsArgument();
+
+        service.toggleReaction(MEETING_ID, CANDIDATE_ID, USER_ID, CandidateReaction.ReactionType.DISLIKE);
+
+        ArgumentCaptor<PlaceCandidate> saved = ArgumentCaptor.forClass(PlaceCandidate.class);
+        verify(placeCandidateRepository).save(saved.capture());
+        assertThat(saved.getValue().getKakaoPlaceId()).isEqualTo("next");
+    }
+
+    @Test
     void 교체되는_장소를_다음_교체에서_제외하도록_기록한다() {
         when(rejectedPlaceRepository.findByMeetingId(MEETING_ID)).thenReturn(List.of());
         givenSearchResult(place("next", "127.002"));

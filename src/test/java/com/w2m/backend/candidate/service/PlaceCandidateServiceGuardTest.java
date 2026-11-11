@@ -176,12 +176,9 @@ class PlaceCandidateServiceGuardTest {
     @Test
     void 후보_조회_시_AI_설명이_저장된_장소만_그_설명으로_바꾸고_나머지는_기본_문구를_쓴다() {
         Participant me = mock(Participant.class);
-        PlaceCandidate withAi = mock(PlaceCandidate.class);
-        when(withAi.getKakaoPlaceId()).thenReturn("p-ai");
-        when(withAi.getDescription()).thenReturn("평균 265m · 가장 빠른 동선");
-        PlaceCandidate withoutAi = mock(PlaceCandidate.class);
-        when(withoutAi.getKakaoPlaceId()).thenReturn("p-none");
-        when(withoutAi.getDescription()).thenReturn("평균 310m · 종합 추천");
+        PlaceCandidate withAi = PlaceCandidate.builder().kakaoPlaceId("p-ai").build();
+        PlaceCandidate withoutAi = PlaceCandidate.builder()
+                .kakaoPlaceId("p-none").description("평균 310m · 종합 추천").build();
         when(participantRepository.findByMeetingIdAndUserId(MEETING_ID, USER_ID)).thenReturn(Optional.of(me));
         when(placeCandidateRepository.findByMeetingId(MEETING_ID)).thenReturn(List.of(withAi, withoutAi));
         when(placeDescriptionService.findCached(List.of("p-ai", "p-none")))
@@ -192,5 +189,27 @@ class PlaceCandidateServiceGuardTest {
         assertThat(responses).extracting("description")
                 .containsExactly("차분한 분위기라는 평이 많아요.", "평균 310m · 종합 추천");
         verify(placeDescriptionService, never()).resolve(anyString(), anyString()); // 조회 중에는 LLM을 부르지 않는다
+    }
+
+    @Test
+    void 같은_장소여도_후보별_설명과_이동_시간을_쓴다() {
+        Participant me = mock(Participant.class);
+        PlaceCandidate generated = PlaceCandidate.builder()
+                .kakaoPlaceId("same-place").avgTravelMinutes(24).maxTravelMinutes(31).build();
+        org.springframework.test.util.ReflectionTestUtils.setField(
+                generated, "meetingDescription", "조용하다는 후기가 있어요. 평균 24분, 최장 31분이에요.");
+        PlaceCandidate oldCandidate = PlaceCandidate.builder()
+                .kakaoPlaceId("same-place").avgTravelMinutes(28).maxTravelMinutes(40).build();
+        when(participantRepository.findByMeetingIdAndUserId(MEETING_ID, USER_ID)).thenReturn(Optional.of(me));
+        when(placeCandidateRepository.findByMeetingId(MEETING_ID)).thenReturn(List.of(generated));
+        when(placeCandidateRepository.findByMeetingId(2L)).thenReturn(List.of(oldCandidate));
+        when(participantRepository.findByMeetingIdAndUserId(2L, USER_ID)).thenReturn(Optional.of(me));
+        when(placeDescriptionService.findCached(List.of("same-place")))
+                .thenReturn(Map.of("same-place", "조용하다는 후기가 있어요."));
+
+        assertThat(service.getCandidates(MEETING_ID, USER_ID)).extracting("description")
+                .containsExactly("조용하다는 후기가 있어요. 평균 24분, 최장 31분이에요.");
+        assertThat(service.getCandidates(2L, USER_ID)).extracting("description")
+                .containsExactly("조용하다는 후기가 있어요. 대중교통 이동 시간은 평균 28분, 최대 40분이에요.");
     }
 }

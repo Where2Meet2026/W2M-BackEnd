@@ -25,6 +25,14 @@ public class NotificationController {
         notificationSubscriptionService.subscribe(userDetails.getUser().getId(), request);
     }
 
+    @PostMapping("/status")
+    public boolean subscriptionStatus(
+            @Valid @RequestBody UnsubscribeRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails
+    ) {
+        return notificationSubscriptionService.isSubscribed(userDetails.getUser().getId(), request.getEndpoint());
+    }
+
     @DeleteMapping("/subscribe")
     public void unsubscribe(
             @Valid @RequestBody UnsubscribeRequest request,

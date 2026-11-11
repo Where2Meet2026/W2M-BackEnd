@@ -10,4 +10,7 @@ import java.util.Optional;
 public interface DescriptionGenerator {
 
     Optional<String> generate(String placeName, double averageRating, int reviewCount, List<String> comments);
+
+    Optional<String> generateForMeeting(String placeName, double averageRating, int reviewCount, List<String> comments,
+                                        int averageTravelMinutes, int maxTravelMinutes);
 }

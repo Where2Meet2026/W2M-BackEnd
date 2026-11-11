@@ -6,6 +6,7 @@ import com.w2m.backend.candidate.dto.response.CandidateResponse;
 import com.w2m.backend.candidate.dto.response.ODsayRouteResponse;
 import com.w2m.backend.candidate.entity.CandidateReaction;
 import com.w2m.backend.candidate.entity.PlaceCandidate;
+import com.w2m.backend.candidate.event.PlaceCandidateCreatedEvent;
 import com.w2m.backend.candidate.repository.CandidateReactionRepository;
 import com.w2m.backend.candidate.repository.PlaceCandidateRepository;
 import com.w2m.backend.candidate.util.DistanceCalculator;
@@ -15,10 +16,10 @@ import com.w2m.backend.meeting.entity.Meeting;
 import com.w2m.backend.meeting.repository.MeetingRepository;
 import com.w2m.backend.participant.entity.Participant;
 import com.w2m.backend.participant.repository.ParticipantRepository;
-import com.w2m.backend.rag.service.DefaultDescriptionFormatter;
 import com.w2m.backend.rag.service.PlaceDescriptionService;
 import com.w2m.backend.vote.repository.VoteRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Service;
 import com.w2m.backend.candidate.dto.response.KakaoLocalSearchResponse.KakaoPlaceDto;
 import org.springframework.transaction.annotation.Transactional;
@@ -39,6 +40,7 @@ public class PlaceCandidateService {
     private final VoteRepository voteRepository;
     private final PlaceDescriptionService placeDescriptionService;
     private final ODsayClient odsayClient;
+    private final ApplicationEventPublisher eventPublisher;
 
     private static final int SEARCH_RADIUS_METERS = 1500;
     private final ParticipantRepository participantRepository;
@@ -61,6 +63,7 @@ public class PlaceCandidateService {
         return new Coordinate(avgLat, avgLng);
     }
 
+    @Transactional
     public List<PlaceCandidate> generateCandidates(Long meetingId){
         Meeting meeting = meetingRepository.findById(meetingId)
                 .orElseThrow(() -> new IllegalArgumentException("모임을 찾을 수 없어요."));
@@ -93,7 +96,11 @@ public class PlaceCandidateService {
                 toEntity(meeting, withTransitTime(balanced, locations), PlaceCandidate.CandidateType.BALANCED),
                 toEntity(meeting, withTransitTime(optimal, locations), PlaceCandidate.CandidateType.OPTIMAL)
         );
-            return placeCandidateRepository.saveAll(candidates);
+        List<PlaceCandidate> savedCandidates = placeCandidateRepository.saveAll(candidates);
+        for (PlaceCandidate candidate : savedCandidates) {
+            publishCandidateCreated(candidate);
+        }
+        return savedCandidates;
     }
     // 후보 장소 하나 당, 참여자 전원과의 거리를 계산해서 평균 / 최대 / 편차를 구함
     private CandidateScore scorePlace(KakaoPlaceDto place,List<ParticipantLocation> locations) {
@@ -205,7 +212,7 @@ public class PlaceCandidateService {
             candidates = generateCandidatesOnce(meetingId);
         }
 
-        // 리뷰 기반 AI 설명이 저장된 장소는 그 설명을, 아니면 후보에 저장된 기본 문구를 쓴다. (LLM 호출 없이 읽기만 함)
+        // 생성 중에는 기존 리뷰 요약 또는 기본 문구를 사용한다. 목록 조회 중 Gemini는 호출하지 않는다.
         Map<String, String> aiDescriptions = placeDescriptionService.findCached(
                 candidates.stream().map(PlaceCandidate::getKakaoPlaceId).toList());
 
@@ -220,10 +227,32 @@ public class PlaceCandidateService {
                             .map(CandidateReaction::getReactionType).
                             orElse(null);
 
-                    String description = aiDescriptions.getOrDefault(candidate.getKakaoPlaceId(), candidate.getDescription());
+                    String description = candidateDescription(candidate, aiDescriptions);
                     return CandidateResponse.of(candidate, likeCount, dislikeCount, myReaction, description);
                 })
                 .toList();
+    }
+
+    private String candidateDescription(PlaceCandidate candidate, Map<String, String> reviewDescriptions) {
+        if (candidate.getMeetingDescription() != null) {
+            return candidate.getMeetingDescription();
+        }
+        String reviewDescription = reviewDescriptions.get(candidate.getKakaoPlaceId());
+        if (reviewDescription == null) {
+            return candidate.getDescription();
+        }
+        Integer average = candidate.getAvgTravelMinutes();
+        Integer maximum = candidate.getMaxTravelMinutes();
+        if (average == null || maximum == null) {
+            return reviewDescription;
+        }
+        return reviewDescription + " 대중교통 이동 시간은 평균 " + average + "분, 최대 " + maximum + "분이에요.";
+    }
+
+    private void publishCandidateCreated(PlaceCandidate candidate) {
+        if (candidate.getAvgTravelMinutes() != null && candidate.getMaxTravelMinutes() != null) {
+            eventPublisher.publishEvent(new PlaceCandidateCreatedEvent(candidate.getId()));
+        }
     }
     @Transactional
     public void toggleReaction(Long meetingId, Long candidateId, Long userId,
@@ -291,7 +320,9 @@ public class PlaceCandidateService {
         candidateReactionRepository.deleteByCandidate(oldCandidate);
         voteRepository.deleteByCandidateId(oldCandidate.getId());
         placeCandidateRepository.delete(oldCandidate);
-        placeCandidateRepository.save(toEntity(meeting, withTransitTime(replacement,locations), oldCandidate.getType()));
+        PlaceCandidate saved = placeCandidateRepository.save(
+                toEntity(meeting, withTransitTime(replacement, locations), oldCandidate.getType()));
+        publishCandidateCreated(saved);
     }
     private CandidateScore withTransitTime(CandidateScore score,
         List<ParticipantLocation> locations) {

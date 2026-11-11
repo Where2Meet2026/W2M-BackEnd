@@ -1,5 +1,6 @@
 package com.w2m.backend.rag.service;
 
+import com.w2m.backend.candidate.entity.PlaceCandidate;
 import com.w2m.backend.rag.entity.PlaceDescription;
 import com.w2m.backend.rag.generator.DescriptionGenerator;
 import com.w2m.backend.rag.repository.PlaceDescriptionRepository;
@@ -93,6 +94,23 @@ public class PlaceDescriptionService {
             return;
         }
         generateAndSave(placeId, placeName, (int) usable);
+    }
+
+    public Optional<String> generateForCandidate(PlaceCandidate candidate) {
+        Integer averageMinutes = candidate.getAvgTravelMinutes();
+        Integer maxMinutes = candidate.getMaxTravelMinutes();
+        if (averageMinutes == null || maxMinutes == null) {
+            return Optional.empty();
+        }
+        String placeId = candidate.getKakaoPlaceId();
+        long usable = reviewRepository.countUsableByPlaceId(placeId);
+        if (usable < minReviews) {
+            return Optional.empty();
+        }
+        List<String> comments = reviewRepository.findUsableComments(placeId, PageRequest.of(0, maxReviews));
+        Double rating = reviewRepository.averageRatingByPlaceId(placeId);
+        return descriptionGenerator.generateForMeeting(candidate.getPlaceName(), rating == null ? 0.0 : rating,
+                (int) usable, comments, averageMinutes, maxMinutes);
     }
 
     private Optional<String> generateAndSave(String placeId, String placeName, int usableCount) {

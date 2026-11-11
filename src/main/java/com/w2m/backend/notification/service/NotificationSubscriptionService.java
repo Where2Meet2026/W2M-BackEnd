@@ -16,6 +16,11 @@ public class NotificationSubscriptionService {
     private final PushSubscriptionRepository pushSubscriptionRepository;
     private final UserRepository userRepository;
 
+    @Transactional(readOnly = true)
+    public boolean isSubscribed(Long userId, String endpoint) {
+        return pushSubscriptionRepository.existsByEndpointAndUserId(endpoint, userId);
+    }
+
     /**
      * Web Push 구독 등록. 같은 endpoint가 이미 있으면 키/소유자만 갱신한다(upsert).
      */

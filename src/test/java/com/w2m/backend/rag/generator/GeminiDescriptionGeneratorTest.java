@@ -2,6 +2,8 @@ package com.w2m.backend.rag.generator;
 
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
@@ -54,6 +56,32 @@ class GeminiDescriptionGeneratorTest {
         Optional<String> result = generator.generate("감성 카페", 4.5, 5, COMMENTS);
 
         assertThat(result).contains("조용하고 커피가 맛있다는 평이 많아요.");
+        server.verify();
+    }
+
+    @Test
+    void 후보_설명에는_리뷰와_이번_모임의_대중교통_시간을_함께_보낸다() {
+        String description = "조용하다는 후기가 있어요. 대중교통으로 평균 24분, 최장 31분이에요.";
+        server.expect(requestTo(URL))
+                .andExpect(jsonPath("$.contents[0].parts[0].text").value(containsString("- 조용해서 좋아요")))
+                .andExpect(jsonPath("$.contents[0].parts[0].text").value(containsString("평균 24분, 최장 31분")))
+                .andRespond(withSuccess(body(description), MediaType.APPLICATION_JSON));
+
+        assertThat(generator.generateForMeeting("카페", 4.5, 5, COMMENTS, 24, 31)).contains(description);
+        server.verify();
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {
+            "대중교통으로 평균 24분, 최장 39분이에요.",
+            "대중교통으로 평균 31분, 최장 24분이에요.",
+            "대중교통으로 평균 24분, 최장 31분이에요. 걸어서 10분이에요."
+    })
+    void 후보_설명의_이동_시간이_입력과_다르면_버린다(String description) {
+        server.expect(requestTo(URL)).andRespond(withSuccess(
+                body(description), MediaType.APPLICATION_JSON));
+
+        assertThat(generator.generateForMeeting("카페", 4.5, 5, COMMENTS, 24, 31)).isEmpty();
         server.verify();
     }
 

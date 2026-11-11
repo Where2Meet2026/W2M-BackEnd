@@ -14,8 +14,11 @@ import com.w2m.backend.review.entity.Review;
 import com.w2m.backend.review.event.ReviewCreatedEvent;
 import com.w2m.backend.review.repository.ReviewRepository;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
+import org.hibernate.exception.ConstraintViolationException;
 import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -23,6 +26,7 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ReviewService {
@@ -80,12 +84,32 @@ public class ReviewService {
             // 동시에 두 번 요청되면 위의 exists 검사를 둘 다 통과할 수 있어서, 유니크 제약 위반도 같은 오류로 처리한다.
             reviewId = reviewRepository.saveAndFlush(review).getId();
         } catch (DataIntegrityViolationException e) {
-            throw new IllegalStateException("이미 이 장소에 리뷰를 썼어요.");
+            if (isUniqueViolation(e)) {
+                throw new IllegalStateException("이미 이 장소에 리뷰를 썼어요.");
+            }
+            // 중복이 아닌 무결성 오류(NOT NULL, 컬럼 길이, 옛 스키마 제약 등)를 "이미 썼어요"로 가리지 않도록 원인을 남긴다.
+            log.error("[review] 리뷰 저장 실패 (중복 아님) meetingId={} userId={} placeId={}",
+                    meetingId, userId, review.getPlaceId(), e);
+            throw new IllegalStateException("리뷰를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.", e);
         }
 
         // 커밋 후 백그라운드에서 이 장소의 설명 문구를 다시 만든다 (rag 패키지의 리스너가 처리).
         eventPublisher.publishEvent(new ReviewCreatedEvent(review.getPlaceId(), review.getPlaceName()));
         return reviewId;
+    }
+
+    // 원인 체인에 유니크 제약 위반이 있으면 진짜 중복이다.
+    private static boolean isUniqueViolation(DataIntegrityViolationException e) {
+        if (e instanceof DuplicateKeyException) {
+            return true;
+        }
+        for (Throwable t = e; t != null; t = t.getCause()) {
+            if (t instanceof ConstraintViolationException cve
+                    && cve.getKind() == ConstraintViolationException.ConstraintKind.UNIQUE) {
+                return true;
+            }
+        }
+        return false;
     }
 
     @Transactional(readOnly = true)

@@ -28,7 +28,7 @@ public class CandidateResponse {
         return of(candidate, likeCount, dislikeCount, myReaction, candidate.getDescription());
     }
 
-    // 리뷰 기반 AI 설명이 있으면 후보에 저장된 기본 문구 대신 그 설명을 내려준다.
+    // 호출자가 선택한 후보 설명을 내려준다.
     public static CandidateResponse of(PlaceCandidate candidate, long likeCount,
    long dislikeCount, CandidateReaction.ReactionType myReaction, String description) {
         return CandidateResponse.builder()
@@ -40,7 +40,6 @@ public class CandidateResponse {
                 .avgDistanceMeters(candidate.getAvgDistanceMeters())
                 .avgTravelMinutes(candidate.getAvgTravelMinutes())
                 .maxTravelMinutes(candidate.getMaxTravelMinutes())
-                .description(candidate.getDescription())
                 .description(description)
                 .likeCount(likeCount)
                 .dislikeCount(dislikeCount)

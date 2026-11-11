@@ -1,6 +1,7 @@
 package com.w2m.backend.notification.push;
 
 import lombok.extern.slf4j.Slf4j;
+import nl.martijndwars.webpush.Encoding;
 import nl.martijndwars.webpush.Notification;
 import nl.martijndwars.webpush.PushService;
 import org.springframework.beans.factory.ObjectProvider;
@@ -47,7 +48,7 @@ public class WebPushSender {
                     target.auth(),
                     toPayload(title, body, url).getBytes(StandardCharsets.UTF_8));
 
-            int status = pushService.send(notification).getStatusLine().getStatusCode();
+            int status = pushService.send(notification, Encoding.AES128GCM).getStatusLine().getStatusCode();
 
             if (status == 404 || status == 410) {
                 return Result.EXPIRED;

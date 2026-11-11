@@ -57,9 +57,13 @@ public class PlaceCandidate {
     @Column
     private Integer maxTravelMinutes;
 
-    // AI가 리뷰를 바탕으로 생성한 추천 설명 (아직 리뷰가 없으면 null)
+    // 후보 유형과 계산된 거리 또는 이동 시간에 따른 기본 설명.
     @Column(columnDefinition = "TEXT")
     private String description;
+
+    // 이 모임의 이동 시간과 누적 장소 리뷰를 함께 사용한 설명.
+    @Column(columnDefinition = "TEXT")
+    private String meetingDescription;
 
     @Builder
     public PlaceCandidate(Meeting meeting, String kakaoPlaceId, String placeName, String address, String categoryCode ,Double latitude, Double longitude,

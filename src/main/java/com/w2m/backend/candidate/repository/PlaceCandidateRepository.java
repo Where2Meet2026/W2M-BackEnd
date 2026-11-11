@@ -4,8 +4,10 @@ import com.w2m.backend.candidate.entity.PlaceCandidate;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
@@ -15,6 +17,14 @@ public interface PlaceCandidateRepository extends JpaRepository<PlaceCandidate, 
     // 이 모임에 후보가 하나라도 만들어졌는지.
     // 후보가 만들어진 뒤에는 참여자 나가기를 막는 데 쓴다 (ParticipantService.leaveMeeting, 내 방 목록의 canLeave)
     boolean existsByMeetingId(Long meetingId);
+
+    @Modifying
+    @Transactional
+    @Query("""
+            update PlaceCandidate c set c.meetingDescription = :description
+            where c.id = :candidateId and c.meetingDescription is null
+            """)
+    void saveMeetingDescription(@Param("candidateId") Long candidateId, @Param("description") String description);
 
     // 잠금 읽기(FOR SHARE)는 트랜잭션 시작 시점의 스냅샷이 아니라 가장 최근에 커밋된 값을 읽는다.
     // 모임 행 잠금을 기다리는 사이 다른 요청이 만든 후보를 확실히 보려고 쓴다.

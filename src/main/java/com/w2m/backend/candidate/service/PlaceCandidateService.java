@@ -6,9 +6,11 @@ import com.w2m.backend.candidate.dto.response.CandidateResponse;
 import com.w2m.backend.candidate.dto.response.ODsayRouteResponse;
 import com.w2m.backend.candidate.entity.CandidateReaction;
 import com.w2m.backend.candidate.entity.PlaceCandidate;
+import com.w2m.backend.candidate.entity.RejectedPlace;
 import com.w2m.backend.candidate.event.PlaceCandidateCreatedEvent;
 import com.w2m.backend.candidate.repository.CandidateReactionRepository;
 import com.w2m.backend.candidate.repository.PlaceCandidateRepository;
+import com.w2m.backend.candidate.repository.RejectedPlaceRepository;
 import com.w2m.backend.candidate.util.DistanceCalculator;
 import com.w2m.backend.location.entity.ParticipantLocation;
 import com.w2m.backend.location.repository.ParticipantLocationRepository;
@@ -39,6 +41,7 @@ public class PlaceCandidateService {
     private final CandidateReactionRepository candidateReactionRepository;
     private final VoteRepository voteRepository;
     private final PlaceDescriptionService placeDescriptionService;
+    private final RejectedPlaceRepository rejectedPlaceRepository;
     private final ODsayClient odsayClient;
     private final ApplicationEventPublisher eventPublisher;
 
@@ -308,9 +311,15 @@ public class PlaceCandidateService {
                 .map(PlaceCandidate::getPlaceName)
                 .collect(Collectors.toSet());
 
+        // 이전에 싫어요로 빠진 장소가 다시 후보로 돌아오지 않도록 함께 제외한다.
+        Set<String> rejectedPlaceIds = rejectedPlaceRepository.findByMeetingId(meetingId).stream()
+                .map(RejectedPlace::getKakaoPlaceId)
+                .collect(Collectors.toSet());
+
         CandidateScore replacement = searchCandidatePlaces(centroid, meeting.getCategory()).stream()
                 .map(place -> scorePlace(place,locations))
                 .filter(score -> !excludePlaceNames.contains(score.place().placeName())) //이미 후보로 있는 장소는 제외함
+                .filter(score -> !rejectedPlaceIds.contains(score.place().placeId()))
                 .min(Comparator.comparingDouble(CandidateScore::avgDistance))
                 .orElseThrow(()-> new IllegalStateException("교체할 후보를 찾지 못했어요."));
 
@@ -320,6 +329,10 @@ public class PlaceCandidateService {
         candidateReactionRepository.deleteByCandidate(oldCandidate);
         voteRepository.deleteByCandidateId(oldCandidate.getId());
         placeCandidateRepository.delete(oldCandidate);
+        rejectedPlaceRepository.save(RejectedPlace.builder()
+                .meeting(meeting)
+                .kakaoPlaceId(oldCandidate.getKakaoPlaceId())
+                .build());
         PlaceCandidate saved = placeCandidateRepository.save(
                 toEntity(meeting, withTransitTime(replacement, locations), oldCandidate.getType()));
         publishCandidateCreated(saved);

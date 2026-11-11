@@ -14,6 +14,7 @@ import com.w2m.backend.review.dto.response.ReviewResponse;
 import com.w2m.backend.review.entity.Review;
 import com.w2m.backend.review.event.ReviewCreatedEvent;
 import com.w2m.backend.review.repository.ReviewRepository;
+import org.hibernate.exception.ConstraintViolationException;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -24,6 +25,7 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.test.util.ReflectionTestUtils;
 
+import java.sql.SQLException;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.util.List;
@@ -236,12 +238,37 @@ class ReviewServiceTest {
         when(participantRepository.existsByMeetingIdAndUserId(MEETING_ID, USER_ID)).thenReturn(true);
         when(reviewRepository.existsByPlaceIdAndUserId("kakao-1", USER_ID)).thenReturn(false);
         when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user()));
-        when(reviewRepository.saveAndFlush(any(Review.class))).thenThrow(new DataIntegrityViolationException("duplicate"));
+        when(reviewRepository.saveAndFlush(any(Review.class))).thenThrow(new DataIntegrityViolationException(
+                "duplicate",
+                new ConstraintViolationException("Duplicate entry", new SQLException("dup", "23000", 1062),
+                        "insert into reviews", ConstraintViolationException.ConstraintKind.UNIQUE, "uk_review_place_user")));
 
         assertThatThrownBy(() ->
                 reviewService.createReview(MEETING_ID, new CreateReviewRequest(5.0, "좋아요"), USER_ID))
                 .isInstanceOf(IllegalStateException.class)
                 .hasMessage("이미 이 장소에 리뷰를 썼어요.");
+
+        verify(eventPublisher, never()).publishEvent(any(Object.class));
+    }
+
+    @Test
+    void 유니크_위반이_아닌_무결성_오류는_중복으로_가리지_않고_저장_실패로_알린다() {
+        PlaceCandidate candidate = confirmedCandidate();
+        Meeting meeting = meetingWithStatus(Meeting.MeetingStatus.CONFIRMED, candidate);
+        when(meetingRepository.findById(MEETING_ID)).thenReturn(Optional.of(meeting));
+        when(participantRepository.existsByMeetingIdAndUserId(MEETING_ID, USER_ID)).thenReturn(true);
+        when(reviewRepository.existsByPlaceIdAndUserId("kakao-1", USER_ID)).thenReturn(false);
+        when(userRepository.findById(USER_ID)).thenReturn(Optional.of(user()));
+        when(reviewRepository.saveAndFlush(any(Review.class))).thenThrow(new DataIntegrityViolationException(
+                "not null",
+                new ConstraintViolationException("Column 'x' cannot be null", new SQLException("null", "23000", 1048),
+                        "insert into reviews", ConstraintViolationException.ConstraintKind.NOT_NULL, null)));
+
+        assertThatThrownBy(() ->
+                reviewService.createReview(MEETING_ID, new CreateReviewRequest(5.0, "좋아요"), USER_ID))
+                .isInstanceOf(IllegalStateException.class)
+                .hasMessage("리뷰를 저장하지 못했어요. 잠시 후 다시 시도해 주세요.")
+                .hasCauseInstanceOf(DataIntegrityViolationException.class);
 
         verify(eventPublisher, never()).publishEvent(any(Object.class));
     }
